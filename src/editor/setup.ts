@@ -17,7 +17,7 @@ export const livePreviewCompartment = new Compartment()
 export const resolverCompartment = new Compartment()
 export const themeCompartment = new Compartment()
 
-export function createExtensions(opts: EditorOptions): Extension[] {
+export function createExtensions(opts: EditorOptions, livePreview: Extension[] = []): Extension[] {
   return [
     history(),
     drawSelection(),
@@ -29,7 +29,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
       { key: 'Mod-/', run: () => (opts.onToggleSource(), true) },
     ])),
     keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
-    livePreviewCompartment.of([]),
+    livePreviewCompartment.of(livePreview),
     resolverCompartment.of([]),
     themeCompartment.of([]),
     EditorView.updateListener.of(u => {

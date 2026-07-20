@@ -3,6 +3,7 @@ import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import welcome from './assets/welcome.md?raw'
 import { createExtensions } from './editor/setup'
+import { livePreviewExtensions } from './editor/live-preview'
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -17,7 +18,7 @@ export default function App() {
           onDocChanged() {},
           onToggleSource() {},
           openExternal(url) { window.open(url, '_blank', 'noopener') },
-        }),
+        }, livePreviewExtensions()),
       }),
       parent: hostRef.current,
     })

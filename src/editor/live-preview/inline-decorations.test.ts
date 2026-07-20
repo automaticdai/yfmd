@@ -1,0 +1,67 @@
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { EditorSelection, EditorState } from '@codemirror/state'
+import type { DecorationSet } from '@codemirror/view'
+import { describe, expect, it } from 'vitest'
+import { buildInlineDecorations } from './inline-decorations'
+import { selectionTouches } from './cursor-context'
+import { livePreviewExtensions } from './index'
+
+function mkState(doc: string, cursor = 0): EditorState {
+  return EditorState.create({
+    doc,
+    selection: EditorSelection.cursor(cursor),
+    extensions: [markdown({ base: markdownLanguage }), livePreviewExtensions()],
+  })
+}
+function hiddenRanges(set: DecorationSet): [number, number][] {
+  const out: [number, number][] = []
+  const it = set.iter()
+  while (it.value) { out.push([it.from, it.to]); it.next() }
+  return out
+}
+
+describe('selectionTouches', () => {
+  it('touches at boundaries', () => {
+    const s = mkState('abcdef', 3)
+    expect(selectionTouches(s, 0, 3)).toBe(true)
+    expect(selectionTouches(s, 3, 6)).toBe(true)
+    expect(selectionTouches(s, 4, 6)).toBe(false)
+  })
+})
+
+describe('inline mark hiding', () => {
+  it('hides ** markers when cursor is outside', () => {
+    // doc: "x **bold** y" — bold node spans 2..10, marks 2..4 and 8..10
+    const { hides } = buildInlineDecorations(mkState('x **bold** y', 0))
+    expect(hiddenRanges(hides)).toEqual(expect.arrayContaining([[2, 4], [8, 10]]))
+  })
+  it('reveals ** markers when cursor is inside', () => {
+    const { hides } = buildInlineDecorations(mkState('x **bold** y', 5))
+    expect(hiddenRanges(hides)).toEqual([])
+  })
+  it('hides heading mark unless cursor on the line', () => {
+    const outside = buildInlineDecorations(mkState('# Title\ntext', 10))
+    expect(hiddenRanges(outside.hides)).toEqual(expect.arrayContaining([[0, 2]]))
+    const inside = buildInlineDecorations(mkState('# Title\ntext', 3))
+    expect(hiddenRanges(inside.hides)).toEqual([])
+  })
+  it('hides link syntax when outside, keeps text', () => {
+    // "[ab](http://x)" — marks [0,1],[3,4],[4,5],[13,14], URL [5,13]
+    const { hides } = buildInlineDecorations(mkState('[ab](http://x) end', 17))
+    const ranges = hiddenRanges(hides)
+    expect(ranges).toEqual(expect.arrayContaining([[0, 1], [3, 4], [4, 5], [5, 13], [13, 14]]))
+  })
+  it('hides inline code backticks but dims fenced code marks', () => {
+    const state = mkState('`a`\n\n```js\nlet x\n```', 20)
+    const { hides } = buildInlineDecorations(state)
+    expect(hiddenRanges(hides)).toEqual(expect.arrayContaining([[0, 1], [2, 3]]))
+  })
+  it('adds heading and quote line classes', () => {
+    const { lines } = buildInlineDecorations(mkState('# H\n\n> q', 0))
+    const it = lines.iter()
+    const classes: string[] = []
+    while (it.value) { classes.push((it.value.spec as { class: string }).class); it.next() }
+    expect(classes.join(' ')).toContain('cm-heading-line-1')
+    expect(classes.join(' ')).toContain('cm-quote-line')
+  })
+})
