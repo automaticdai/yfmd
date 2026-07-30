@@ -5,6 +5,7 @@ import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemir
 import type { SyntaxNode } from '@lezer/common'
 import { selectionTouches, selectionTouchesLine } from './cursor-context'
 import { imageResolver, rebuildWidgets } from './facets'
+import { MathWidget, findMathRanges } from './math'
 
 export function childText(state: EditorState, node: SyntaxNode, type: string): string {
   const child = node.getChild(type)
@@ -76,6 +77,24 @@ export function buildWidgetDecorations(state: EditorState): DecorationSet {
       }
     },
   })
+
+  for (const m of findMathRanges(state)) {
+    if (m.block) {
+      const lineFrom = state.doc.lineAt(m.from)
+      const lineTo = state.doc.lineAt(m.to)
+      if (selectionTouches(state, lineFrom.from, lineTo.to)) continue
+      widgets.push(
+        Decoration.replace({ widget: new MathWidget(m.tex, true), block: true })
+          .range(lineFrom.from, lineTo.to))
+    } else {
+      if (selectionTouches(state, m.from, m.to)) continue
+      // $$..$$ matches that are not on their own lines render display-style but inline
+      const display = state.doc.sliceString(m.from, m.from + 2) === '$$'
+      widgets.push(
+        Decoration.replace({ widget: new MathWidget(m.tex, display) }).range(m.from, m.to))
+    }
+  }
+
   return Decoration.set(widgets, true)
 }
 
