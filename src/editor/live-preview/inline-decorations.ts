@@ -46,8 +46,9 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
           const parent = node.node.parent
           if (!parent) return
           if (parent.name.startsWith('ATXHeading')) {
-            // leading mark only; a heading line's mark starts at the line start
-            if (node.from === doc.lineAt(node.from).from && !selectionTouchesLine(state, node.from)) {
+            // hide the leading '# ' (the parent's first child), never a trailing closing sequence
+            const leading = parent.firstChild
+            if (leading && node.from === leading.from && !selectionTouchesLine(state, node.from)) {
               hideWithSpace(node.from, node.to)
             }
           } else {

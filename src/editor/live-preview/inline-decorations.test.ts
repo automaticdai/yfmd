@@ -45,6 +45,16 @@ describe('inline mark hiding', () => {
     const inside = buildInlineDecorations(mkState('# Title\ntext', 3))
     expect(hiddenRanges(inside.hides)).toEqual([])
   })
+  it('hides the leading mark of an indented ATX heading', () => {
+    // '  # Title' — HeaderMark is at col 2, not the line start; the '# ' must
+    // still hide when the cursor is elsewhere (regression: old guard compared
+    // against the raw line start and never hid indented/nested headings).
+    const doc = '  # Title\n\ntext'
+    const outside = hiddenRanges(buildInlineDecorations(mkState(doc, 12)).hides)
+    expect(outside.some(([f, t]) => doc.slice(f, t) === '# ')).toBe(true)
+    const inside = hiddenRanges(buildInlineDecorations(mkState(doc, 4)).hides)
+    expect(inside.some(([f, t]) => doc.slice(f, t) === '# ')).toBe(false)
+  })
   it('hides link syntax when outside, keeps text', () => {
     // "[ab](http://x)" — marks [0,1],[3,4],[4,5],[13,14], URL [5,13]
     const { hides } = buildInlineDecorations(mkState('[ab](http://x) end', 17))
