@@ -6,6 +6,7 @@ import { search, searchKeymap } from '@codemirror/search'
 import { Compartment, type Extension, Prec } from '@codemirror/state'
 import { EditorView, drawSelection, keymap } from '@codemirror/view'
 import { mdHighlightStyle } from './highlight'
+import { livePreviewExtensions } from './live-preview'
 
 export interface EditorOptions {
   onDocChanged(): void
@@ -17,7 +18,7 @@ export const livePreviewCompartment = new Compartment()
 export const resolverCompartment = new Compartment()
 export const themeCompartment = new Compartment()
 
-export function createExtensions(opts: EditorOptions, livePreview: Extension[] = []): Extension[] {
+export function createExtensions(opts: EditorOptions): Extension[] {
   return [
     history(),
     drawSelection(),
@@ -29,7 +30,7 @@ export function createExtensions(opts: EditorOptions, livePreview: Extension[] =
       { key: 'Mod-/', run: () => (opts.onToggleSource(), true) },
     ])),
     keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
-    livePreviewCompartment.of(livePreview),
+    livePreviewCompartment.of(livePreviewExtensions({ openExternal: opts.openExternal })),
     resolverCompartment.of([]),
     themeCompartment.of([]),
     EditorView.updateListener.of(u => {

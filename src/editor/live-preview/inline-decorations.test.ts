@@ -10,7 +10,7 @@ function mkState(doc: string, cursor = 0): EditorState {
   return EditorState.create({
     doc,
     selection: EditorSelection.cursor(cursor),
-    extensions: [markdown({ base: markdownLanguage }), livePreviewExtensions()],
+    extensions: [markdown({ base: markdownLanguage }), livePreviewExtensions({ openExternal() {} })],
   })
 }
 function hiddenRanges(set: DecorationSet): [number, number][] {
