@@ -12,7 +12,9 @@ import {
 } from './editor/commands'
 import { imageResolver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
 import { createExtensions, resolverCompartment, themeCompartment } from './editor/setup'
+import { extractOutline, type OutlineItem } from './outline/outline'
 import { createFileService, type FileService } from './services/file-service'
+import { Sidebar } from './sidebar/Sidebar'
 
 type Theme = 'light' | 'dark'
 
@@ -36,6 +38,15 @@ export default function App() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(true)
+  const [outline, setOutline] = useState<OutlineItem[]>([])
+  const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scheduleOutline = useCallback(() => {
+    if (outlineTimer.current) clearTimeout(outlineTimer.current)
+    outlineTimer.current = setTimeout(() => {
+      if (viewRef.current) setOutline(extractOutline(viewRef.current.state))
+    }, 200)
+  }, [])
 
   const notify = useCallback((message: string) => {
     setToast(message)
@@ -71,7 +82,7 @@ export default function App() {
       state: EditorState.create({
         doc: welcome,
         extensions: createExtensions({
-          onDocChanged: () => controllerRef.current?.markDirty(),
+          onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline() },
           onToggleSource: () => toggleSource(),
           openExternal,
         }),
@@ -81,6 +92,7 @@ export default function App() {
     viewRef.current = view
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__yfmdView = view
     applyTheme(initialTheme())
+    scheduleOutline()
 
     createFileService().then(fs => {
       if (disposed) return
@@ -91,11 +103,12 @@ export default function App() {
           view.setState(EditorState.create({
             doc: text,
             extensions: createExtensions({
-              onDocChanged: () => controllerRef.current?.markDirty(),
+              onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline() },
               onToggleSource: () => toggleSource(),
               openExternal,
             }),
           }))
+          scheduleOutline()
           sourceModeRef.current = false
           setSourceMode(false)
           applyTheme((localStorage.getItem('yfmd-theme') as Theme) ?? 'light')
@@ -186,7 +199,20 @@ export default function App() {
     <div className="app" data-app-theme={theme}>
       <MenuBar onAction={onAction} />
       <div className="app-body">
-        {sidebarVisible && <aside className="sidebar-placeholder" />}
+        {sidebarVisible && (
+          <Sidebar
+            tree={meta.tree}
+            folderPath={meta.folderPath}
+            outline={outline}
+            onOpenFile={path => void controllerRef.current?.openPath(path)}
+            onJump={pos => {
+              const view = viewRef.current
+              if (!view) return
+              view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'start' }) })
+              view.focus()
+            }}
+          />
+        )}
         <main className="editor-pane"><div ref={hostRef} style={{ height: '100%' }} /></main>
       </div>
       <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} />
