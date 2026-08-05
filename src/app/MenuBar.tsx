@@ -14,6 +14,7 @@ export const MENUS: MenuGroup[] = [
       { action: 'save-as', label: 'Save As…', shortcut: 'Ctrl+Shift+S' },
       { action: 'export-html', label: 'Export HTML…' },
       { action: 'export-pdf', label: 'Export PDF…' },
+      { action: 'quit', label: 'Quit', shortcut: 'Ctrl+Q' },
     ],
   },
   {

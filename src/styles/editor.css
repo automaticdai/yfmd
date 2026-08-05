@@ -1,6 +1,6 @@
 .cm-editor { height: 100%; background: var(--bg); color: var(--fg); }
 .cm-scroller {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Noto Sans CJK SC', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'Droid Sans Fallback', sans-serif;
   line-height: 1.7;
   padding: 2rem 0 40vh 0;
 }
@@ -18,7 +18,7 @@
 .tok-em { font-style: italic; }
 .tok-strike { text-decoration: line-through; }
 .tok-mono, .cm-inline-code {
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace;
   font-size: 0.9em;
 }
 .cm-inline-code { background: var(--code-bg); border-radius: 3px; padding: 1px 2px; }
@@ -41,7 +41,7 @@
 /* code blocks */
 .cm-codeblock-line {
   background: var(--code-bg);
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace;
   font-size: 0.9em;
   padding-left: 1em !important;
   padding-right: 1em !important;
@@ -59,7 +59,7 @@
 .tok-meta { color: var(--fg-muted); }
 
 /* tables (source view while editing) */
-.cm-table-line { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 0.9em; }
+.cm-table-line { font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace; font-size: 0.9em; }
 /* table widget */
 .cm-table-widget { border-collapse: collapse; margin: 0.5em 0; cursor: pointer; }
 .cm-table-widget th, .cm-table-widget td { border: 1px solid var(--border); padding: 0.35em 0.9em; }

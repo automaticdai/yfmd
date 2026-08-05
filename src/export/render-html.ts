@@ -148,7 +148,8 @@ export async function renderMermaidBlocks(html: string): Promise<string> {
 
 const EXPORT_CSS = `
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
     color: #333; line-height: 1.7; max-width: 46rem; margin: 0 auto;
     padding: 2rem 3rem 4rem;
   }

@@ -147,9 +147,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /** Dirty-guard then leave: destroys the Tauri window or closes the browser tab. */
+  const quitApp = useCallback(async () => {
+    const c = controllerRef.current
+    if (c && !(await c.guardDirty())) return
+    if ('__TAURI_INTERNALS__' in window) {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      await getCurrentWindow().destroy()
+    } else {
+      window.close()
+      notify('Close the browser tab to quit')
+    }
+  }, [notify])
+
   // dirty guard on native window close (Tauri)
   useEffect(() => {
     if (!('__TAURI_INTERNALS__' in window)) return
+    let disposed = false
     let unlisten: (() => void) | undefined
     void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
       const win = getCurrentWindow()
@@ -159,9 +173,13 @@ export default function App() {
           event.preventDefault()
           if (await c.guardDirty()) void win.destroy()
         }
-      }).then(fn => { unlisten = fn })
+      }).then(fn => {
+        // effect may have been cleaned up while the import was in flight
+        if (disposed) fn()
+        else unlisten = fn
+      })
     })
-    return () => unlisten?.()
+    return () => { disposed = true; unlisten?.() }
   }, [])
 
   // dirty guard on browser close
@@ -184,10 +202,11 @@ export default function App() {
       else if (key === 's') { e.preventDefault(); void c.save() }
       else if (key === 'o') { e.preventDefault(); void c.openFileViaDialog() }
       else if (key === 'n') { e.preventDefault(); void c.newFile() }
+      else if (key === 'q') { e.preventDefault(); void quitApp() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [quitApp])
 
   const onAction = useCallback((action: string) => {
     const view = viewRef.current
@@ -224,11 +243,12 @@ export default function App() {
       case 'code': if (view) { toggleInlineCode(view); view.focus() } break
       case 'link': if (view) { insertLink(view); view.focus() } break
       case 'find': if (view) { openSearchPanel(view) } break
+      case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
       case 'theme': setTheme(t => { const next = t === 'dark' ? 'light' : 'dark'; applyTheme(next); return next }); break
     }
-  }, [applyTheme, notify, toggleSource])
+  }, [applyTheme, notify, quitApp, toggleSource])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
 
