@@ -4,8 +4,9 @@ import { StateField } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 import { selectionTouches, selectionTouchesLine } from './cursor-context'
-import { imageResolver, rebuildWidgets } from './facets'
+import { imageResolver, rebuildWidgets, uiTheme } from './facets'
 import { MathWidget, findMathRanges } from './math'
+import { MermaidWidget } from './mermaid-widget'
 
 export function childText(state: EditorState, node: SyntaxNode, type: string): string {
   const child = node.getChild(type)
@@ -56,9 +57,25 @@ class HrWidget extends WidgetType {
 export function buildWidgetDecorations(state: EditorState): DecorationSet {
   const widgets: Range<Decoration>[] = []
   const resolve = state.facet(imageResolver)
+  const theme = state.facet(uiTheme)
 
   syntaxTree(state).iterate({
     enter(node): boolean | void {
+      if (node.name === 'FencedCode') {
+        const info = childText(state, node.node, 'CodeInfo').trim().toLowerCase()
+        if (info === 'mermaid') {
+          const lineFrom = state.doc.lineAt(node.from)
+          const lineTo = state.doc.lineAt(node.to)
+          if (!selectionTouches(state, lineFrom.from, lineTo.to)) {
+            const code = childText(state, node.node, 'CodeText')
+            widgets.push(
+              Decoration.replace({ widget: new MermaidWidget(code, theme), block: true })
+                .range(lineFrom.from, lineTo.to))
+          }
+          return false
+        }
+        return // non-mermaid fences keep default handling (highlighted source)
+      }
       if (node.name === 'Image') {
         if (!selectionTouches(state, node.from, node.to)) {
           const src = childText(state, node.node, 'URL')
