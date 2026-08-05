@@ -10,6 +10,7 @@ import { StatusBar } from './app/StatusBar'
 import {
   insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
+import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
 import { createExtensions, resolverCompartment, themeCompartment } from './editor/setup'
 import { extractOutline, type OutlineItem } from './outline/outline'
@@ -180,7 +181,26 @@ export default function App() {
       case 'open-folder': void c?.openFolderViaDialog(); break
       case 'save': void c?.save(); break
       case 'save-as': void c?.saveAs(); break
-      case 'export-html': case 'export-pdf': notify('Export not implemented yet'); break
+      case 'export-html': {
+        const fs = fsRef.current
+        if (view && fs) {
+          const p = controllerRef.current?.meta.path
+          const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
+          void exportHtml(fs, view.state.doc.toString(), title)
+            .then(saved => { if (saved) notify(`Exported to ${saved}`) })
+            .catch(err => notify(`Export failed: ${err instanceof Error ? err.message : String(err)}`))
+        }
+        break
+      }
+      case 'export-pdf': {
+        if (view) {
+          const p = controllerRef.current?.meta.path
+          const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
+          void exportPdf(view.state.doc.toString(), title)
+            .catch(err => notify(`Export failed: ${err instanceof Error ? err.message : String(err)}`))
+        }
+        break
+      }
       case 'bold': if (view) { toggleBold(view); view.focus() } break
       case 'italic': if (view) { toggleItalic(view); view.focus() } break
       case 'strike': if (view) { toggleStrikethrough(view); view.focus() } break
