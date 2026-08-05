@@ -28,3 +28,60 @@ body {
 .app { display: flex; flex-direction: column; height: 100%; }
 .app-body { display: flex; flex: 1; min-height: 0; }
 .editor-pane { flex: 1; min-width: 0; overflow: hidden; }
+
+.menubar {
+  display: flex; gap: 2px; padding: 2px 8px;
+  background: var(--sidebar-bg); border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.menu { position: relative; }
+.menu-title {
+  background: none; border: none; color: var(--fg);
+  padding: 4px 10px; cursor: pointer; border-radius: 4px; font-size: 13px;
+}
+.menu-title:hover, .menu-title.open { background: var(--border); }
+.menu-items {
+  position: absolute; top: 100%; left: 0; z-index: 50; min-width: 220px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); padding: 4px;
+  display: flex; flex-direction: column;
+}
+.menu-items button {
+  display: flex; justify-content: space-between; gap: 2em;
+  background: none; border: none; color: var(--fg); font-size: 13px;
+  padding: 6px 10px; cursor: pointer; border-radius: 4px; text-align: left;
+}
+.menu-items button:hover { background: var(--accent); color: #fff; }
+.menu-items .shortcut { color: var(--fg-muted); }
+.menu-items button:hover .shortcut { color: #fff; }
+
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 12px; font-size: 12px; color: var(--fg-muted);
+  background: var(--sidebar-bg); border-top: 1px solid var(--border);
+}
+.dirty-dot { color: var(--accent); }
+.source-badge { letter-spacing: 1px; color: var(--accent); }
+
+.sidebar-placeholder { width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--border); }
+
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.confirm-dialog {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1.2em 1.5em; min-width: 320px;
+}
+.confirm-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1em; }
+.confirm-buttons button {
+  padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--sidebar-bg); color: var(--fg); cursor: pointer;
+}
+.confirm-buttons button[data-choice='save'] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.toast {
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+  background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 6px;
+  font-size: 13px; z-index: 200;
+}
