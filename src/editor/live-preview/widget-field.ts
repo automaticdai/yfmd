@@ -88,10 +88,10 @@ export function buildWidgetDecorations(state: EditorState): DecorationSet {
           .range(lineFrom.from, lineTo.to))
     } else {
       if (selectionTouches(state, m.from, m.to)) continue
-      // $$..$$ matches that are not on their own lines render display-style but inline
-      const display = state.doc.sliceString(m.from, m.from + 2) === '$$'
+      // Inline math and mid-line $$..$$ both render inline: a display-mode widget
+      // is block-level (KaTeX wraps it in .katex-display) and would break line flow.
       widgets.push(
-        Decoration.replace({ widget: new MathWidget(m.tex, display) }).range(m.from, m.to))
+        Decoration.replace({ widget: new MathWidget(m.tex, false) }).range(m.from, m.to))
     }
   }
 
