@@ -147,6 +147,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // dirty guard on native window close (Tauri)
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return
+    let unlisten: (() => void) | undefined
+    void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+      const win = getCurrentWindow()
+      void win.onCloseRequested(async event => {
+        const c = controllerRef.current
+        if (c?.meta.dirty) {
+          event.preventDefault()
+          if (await c.guardDirty()) void win.destroy()
+        }
+      }).then(fn => { unlisten = fn })
+    })
+    return () => unlisten?.()
+  }, [])
+
   // dirty guard on browser close
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
