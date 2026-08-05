@@ -7,6 +7,7 @@ import { selectionTouches, selectionTouchesLine } from './cursor-context'
 import { imageResolver, rebuildWidgets, uiTheme } from './facets'
 import { MathWidget, findMathRanges } from './math'
 import { MermaidWidget } from './mermaid-widget'
+import { TableWidget } from './table'
 
 export function childText(state: EditorState, node: SyntaxNode, type: string): string {
   const child = node.getChild(type)
@@ -83,6 +84,16 @@ export function buildWidgetDecorations(state: EditorState): DecorationSet {
           const alt = /^!\[([^\]]*)\]/.exec(raw)?.[1] ?? ''
           widgets.push(
             Decoration.replace({ widget: new ImageWidget(resolve(src), alt) }).range(node.from, node.to))
+        }
+        return false
+      }
+      if (node.name === 'Table') {
+        const lineFrom = state.doc.lineAt(node.from)
+        const lineTo = state.doc.lineAt(node.to)
+        if (!selectionTouches(state, lineFrom.from, lineTo.to)) {
+          widgets.push(
+            Decoration.replace({ widget: new TableWidget(state.doc.sliceString(lineFrom.from, lineTo.to)), block: true })
+              .range(lineFrom.from, lineTo.to))
         }
         return false
       }
