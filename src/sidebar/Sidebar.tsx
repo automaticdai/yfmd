@@ -8,12 +8,13 @@ interface Props {
   tree: FileEntry[] | null
   folderPath: string | null
   outline: OutlineItem[]
+  defaultTab?: 'files' | 'outline'
   onOpenFile(path: string): void
   onJump(pos: number): void
 }
 
-export function Sidebar({ tree, folderPath, outline, onOpenFile, onJump }: Props) {
-  const [tab, setTab] = useState<'files' | 'outline'>('files')
+export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onJump }: Props) {
+  const [tab, setTab] = useState<'files' | 'outline'>(defaultTab ?? 'files')
   return (
     <aside className="sidebar">
       <div className="sidebar-tabs">

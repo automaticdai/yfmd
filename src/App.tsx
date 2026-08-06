@@ -14,16 +14,10 @@ import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
 import { createExtensions, resolverCompartment, themeCompartment } from './editor/setup'
 import { extractOutline, type OutlineItem } from './outline/outline'
+import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } from './app/settings'
+import { SettingsDialog } from './app/SettingsDialog'
 import { createFileService, type FileService } from './services/file-service'
 import { Sidebar } from './sidebar/Sidebar'
-
-type Theme = 'light' | 'dark'
-
-function initialTheme(): Theme {
-  const stored = localStorage.getItem('yfmd-theme')
-  if (stored === 'light' || stored === 'dark') return stored
-  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -35,12 +29,25 @@ export default function App() {
   const [meta, setMeta] = useState<DocMeta>({ path: null, dirty: false, folderPath: null, tree: null })
   const [sourceMode, setSourceMode] = useState(false)
   const sourceModeRef = useRef(false)
-  const [theme, setTheme] = useState<Theme>(initialTheme)
+  const [settings, setSettings] = useState<Settings>(() => loadSettings())
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [sidebarVisible, setSidebarVisible] = useState(true)
+  const [sidebarVisible, setSidebarVisible] = useState(false)
   const [outline, setOutline] = useState<OutlineItem[]>([])
   const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scheduleAutosave = useCallback(() => {
+    if (!settingsRef.current.autosave) return
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(() => {
+      const c = controllerRef.current
+      if (c && c.meta.dirty && c.meta.path !== null) void c.save()
+    }, 2000)
+  }, [])
 
   const scheduleOutline = useCallback(() => {
     if (outlineTimer.current) clearTimeout(outlineTimer.current)
@@ -58,11 +65,14 @@ export default function App() {
     fsRef.current?.openExternal(url)
   }, [])
 
-  const applyTheme = useCallback((t: Theme) => {
-    document.documentElement.setAttribute('data-theme', t)
-    localStorage.setItem('yfmd-theme', t)
+  /** Push the current theme into the editor (mermaid re-render etc.). */
+  const applyEditorTheme = useCallback(() => {
+    const dark = THEMES.find(t => t.id === settingsRef.current.theme)?.dark ?? false
     viewRef.current?.dispatch({
-      effects: [themeCompartment.reconfigure(uiTheme.of(t)), rebuildWidgets.of(null)],
+      effects: [
+        themeCompartment.reconfigure(uiTheme.of(dark ? 'dark' : 'light')),
+        rebuildWidgets.of(null),
+      ],
     })
   }, [])
 
@@ -83,7 +93,7 @@ export default function App() {
       state: EditorState.create({
         doc: welcome,
         extensions: createExtensions({
-          onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline() },
+          onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline(); scheduleAutosave() },
           onToggleSource: () => toggleSource(),
           openExternal,
         }),
@@ -92,7 +102,7 @@ export default function App() {
     })
     viewRef.current = view
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__yfmdView = view
-    applyTheme(initialTheme())
+    applyEditorTheme()
     scheduleOutline()
 
     createFileService().then(fs => {
@@ -104,7 +114,7 @@ export default function App() {
           view.setState(EditorState.create({
             doc: text,
             extensions: createExtensions({
-              onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline() },
+              onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline(); scheduleAutosave() },
               onToggleSource: () => toggleSource(),
               openExternal,
             }),
@@ -112,7 +122,7 @@ export default function App() {
           scheduleOutline()
           sourceModeRef.current = false
           setSourceMode(false)
-          applyTheme((localStorage.getItem('yfmd-theme') as Theme) ?? 'light')
+          applyEditorTheme()
           const path = controllerRef.current?.meta.path ?? null
           view.dispatch({
             effects: [
@@ -146,6 +156,18 @@ export default function App() {
     return () => { disposed = true; view.destroy(); viewRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // apply + persist settings whenever they change (also on first mount, after the editor exists)
+  useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-theme', settings.theme)
+    root.style.setProperty('--editor-max-width', `${settings.maxWidth}rem`)
+    root.style.setProperty('--editor-margin', `${settings.sideMargin}rem`)
+    root.style.setProperty('--editor-font-size', `${settings.fontSize}px`)
+    root.style.setProperty('--editor-line-height', String(settings.lineHeight))
+    saveSettings(settings)
+    applyEditorTheme()
+  }, [settings, applyEditorTheme])
 
   /** Dirty-guard then leave: destroys the Tauri window or closes the browser tab. */
   const quitApp = useCallback(async () => {
@@ -196,6 +218,8 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       const key = e.key.toLowerCase()
+      if (key === ',') { e.preventDefault(); setSettingsOpen(o => !o); return }
+      if (key === 'l' && e.shiftKey) { e.preventDefault(); setSidebarVisible(v => !v); return }
       const c = controllerRef.current
       if (!c) return
       if (key === 's' && e.shiftKey) { e.preventDefault(); void c.saveAs() }
@@ -211,10 +235,19 @@ export default function App() {
   const onAction = useCallback((action: string) => {
     const view = viewRef.current
     const c = controllerRef.current
+    if (action.startsWith('theme:')) {
+      const id = action.slice('theme:'.length) as ThemeName
+      if (THEMES.some(t => t.id === id)) setSettings(s => ({ ...s, theme: id }))
+      return
+    }
     switch (action) {
       case 'new': void c?.newFile(); break
       case 'open-file': void c?.openFileViaDialog(); break
-      case 'open-folder': void c?.openFolderViaDialog(); break
+      case 'open-folder':
+        void c?.openFolderViaDialog().then(() => {
+          if (controllerRef.current?.meta.folderPath) setSidebarVisible(true)
+        })
+        break
       case 'save': void c?.save(); break
       case 'save-as': void c?.saveAs(); break
       case 'export-html': {
@@ -243,24 +276,25 @@ export default function App() {
       case 'code': if (view) { toggleInlineCode(view); view.focus() } break
       case 'link': if (view) { insertLink(view); view.focus() } break
       case 'find': if (view) { openSearchPanel(view) } break
+      case 'settings': setSettingsOpen(true); break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
-      case 'theme': setTheme(t => { const next = t === 'dark' ? 'light' : 'dark'; applyTheme(next); return next }); break
     }
-  }, [applyTheme, notify, quitApp, toggleSource])
+  }, [notify, quitApp, toggleSource])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
 
   return (
-    <div className="app" data-app-theme={theme}>
-      <MenuBar onAction={onAction} />
+    <div className="app">
+      <MenuBar onAction={onAction} checkedActions={new Set([`theme:${settings.theme}`])} />
       <div className="app-body">
         {sidebarVisible && (
           <Sidebar
             tree={meta.tree}
             folderPath={meta.folderPath}
             outline={outline}
+            defaultTab={settings.sidebarTab}
             onOpenFile={path => void controllerRef.current?.openPath(path)}
             onJump={pos => {
               const view = viewRef.current
@@ -277,6 +311,13 @@ export default function App() {
         <ConfirmDialog
           fileName={fileName}
           onChoice={choice => { setConfirmOpen(false); confirmResolve.current?.(choice) }}
+        />
+      )}
+      {settingsOpen && (
+        <SettingsDialog
+          settings={settings}
+          onChange={setSettings}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
       {toast && <div className="toast">{toast}</div>}

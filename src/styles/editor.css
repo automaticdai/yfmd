@@ -1,13 +1,13 @@
 .cm-editor { height: 100%; background: var(--bg); color: var(--fg); }
 .cm-scroller {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Noto Sans CJK SC', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'Droid Sans Fallback', sans-serif;
-  line-height: 1.7;
+  font-family: var(--editor-font, sans-serif);
+  line-height: var(--editor-line-height, 1.7);
   padding: 2rem 0 40vh 0;
 }
 .cm-content {
-  max-width: 46rem;
+  max-width: var(--editor-max-width, 46rem);
   margin: 0 auto;
-  padding: 0 3rem;
+  padding: 0 var(--editor-margin, 3rem);
   caret-color: var(--fg);
 }
 .cm-line { padding: 0 2px; }

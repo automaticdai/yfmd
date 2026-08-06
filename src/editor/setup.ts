@@ -43,7 +43,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
       if (u.docChanged) opts.onDocChanged()
     }),
     EditorView.theme({
-      '&': { height: '100%', fontSize: '16px' },
+      '&': { height: '100%', fontSize: 'var(--editor-font-size, 16px)' },
       '.cm-scroller': { overflow: 'auto' },
       '&.cm-focused': { outline: 'none' },
     }),

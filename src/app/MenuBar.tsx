@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { THEMES } from './settings'
 
 export interface MenuAction { action: string; label: string; shortcut?: string }
 export interface MenuGroup { title: string; items: MenuAction[] }
@@ -14,6 +15,7 @@ export const MENUS: MenuGroup[] = [
       { action: 'save-as', label: 'Save As…', shortcut: 'Ctrl+Shift+S' },
       { action: 'export-html', label: 'Export HTML…' },
       { action: 'export-pdf', label: 'Export PDF…' },
+      { action: 'settings', label: 'Settings…', shortcut: 'Ctrl+,' },
       { action: 'quit', label: 'Quit', shortcut: 'Ctrl+Q' },
     ],
   },
@@ -31,14 +33,22 @@ export const MENUS: MenuGroup[] = [
   {
     title: 'View',
     items: [
-      { action: 'toggle-sidebar', label: 'Toggle Sidebar' },
+      { action: 'toggle-sidebar', label: 'Toggle Sidebar', shortcut: 'Ctrl+Shift+L' },
       { action: 'source-mode', label: 'Source Mode', shortcut: 'Ctrl+/' },
-      { action: 'theme', label: 'Toggle Theme' },
     ],
+  },
+  {
+    title: 'Theme',
+    items: THEMES.map(t => ({ action: `theme:${t.id}`, label: t.label })),
   },
 ]
 
-export function MenuBar({ onAction }: { onAction(action: string): void }) {
+interface MenuBarProps {
+  onAction(action: string): void
+  checkedActions?: Set<string>
+}
+
+export function MenuBar({ onAction, checkedActions }: MenuBarProps) {
   const [open, setOpen] = useState<string | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
 
@@ -66,9 +76,10 @@ export function MenuBar({ onAction }: { onAction(action: string): void }) {
                 <button
                   key={item.action}
                   data-action={item.action}
+                  className={checkedActions?.has(item.action) ? 'checked' : undefined}
                   onClick={() => { setOpen(null); onAction(item.action) }}
                 >
-                  <span>{item.label}</span>
+                  <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
                   {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
                 </button>
               ))}

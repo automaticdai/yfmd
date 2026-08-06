@@ -1,9 +1,19 @@
 import { expect, test } from '@playwright/test'
 import { docText, menuAction, openApp, setDoc } from './helpers'
 
+test('sidebar is hidden by default and Ctrl+Shift+L toggles it', async ({ page }) => {
+  await openApp(page)
+  await expect(page.locator('.sidebar')).toHaveCount(0)
+  await page.keyboard.press('Control+Shift+L')
+  await expect(page.locator('.sidebar')).toBeVisible()
+  await page.keyboard.press('Control+Shift+L')
+  await expect(page.locator('.sidebar')).toHaveCount(0)
+})
+
 test('outline lists headings and jumps on click', async ({ page }) => {
   await openApp(page)
   await setDoc(page, '# One\n\ntext\n\n## Two\n\nmore')
+  await page.keyboard.press('Control+Shift+L')
   await page.locator('.sidebar-tab[data-tab="outline"]').click()
   await expect(page.locator('.outline-item')).toHaveCount(2)
   await page.locator('.outline-item', { hasText: 'Two' }).click()
@@ -13,15 +23,38 @@ test('outline lists headings and jumps on click', async ({ page }) => {
   expect(head).toBe(13)
 })
 
-test('theme toggle flips data-theme and persists', async ({ page }) => {
+test('theme menu switches theme and persists', async ({ page }) => {
   await openApp(page)
-  const initial = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
-  await menuAction(page, 'View', 'theme')
-  const flipped = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
-  expect(flipped).not.toBe(initial)
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('github')
+  await menuAction(page, 'Theme', 'theme:night')
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('night')
   await page.reload()
   await expect(page.locator('.cm-content')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(flipped)
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('night')
+  // active theme is checkmarked in the menu
+  await page.locator('.menu-title', { hasText: 'Theme' }).click()
+  await expect(page.locator('[data-action="theme:night"]')).toHaveClass(/checked/)
+})
+
+test('settings dialog changes text width live and persists', async ({ page }) => {
+  await openApp(page)
+  await menuAction(page, 'File', 'settings')
+  await expect(page.locator('.settings-dialog')).toBeVisible()
+  await page.locator('[data-setting="maxWidth"]').evaluate((el, v) => {
+    const input = el as HTMLInputElement
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!
+    setter.call(input, v)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  }, '60')
+  const width = () => page.evaluate(() =>
+    getComputedStyle(document.querySelector('.cm-content')!).maxWidth)
+  expect(await width()).toBe('960px')   // 60rem at 16px root font
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.settings-dialog')).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('.cm-content')).toBeVisible()
+  expect(await width()).toBe('960px')
 })
 
 test('editing marks dirty; save clears it', async ({ page }) => {

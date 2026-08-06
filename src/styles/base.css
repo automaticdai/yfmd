@@ -1,4 +1,4 @@
-:root, [data-theme='light'] {
+:root, [data-theme='github'] {
   --bg: #ffffff;
   --fg: #333333;
   --fg-muted: #8e8e8e;
@@ -7,8 +7,10 @@
   --sidebar-bg: #f7f7f7;
   --code-bg: #f4f4f4;
   --error: #c0392b;
+  --editor-font: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue',
+    'Noto Sans CJK SC', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'Droid Sans Fallback', sans-serif;
 }
-[data-theme='dark'] {
+[data-theme='night'] {
   --bg: #1e1e1e;
   --fg: #d4d4d4;
   --fg-muted: #7f7f7f;
@@ -17,6 +19,27 @@
   --sidebar-bg: #252526;
   --code-bg: #2a2a2a;
   --error: #e07b6a;
+}
+[data-theme='newsprint'] {
+  --bg: #f3f2ed;
+  --fg: #3a3129;
+  --fg-muted: #8f867b;
+  --accent: #b3552f;
+  --border: #dcd7cd;
+  --sidebar-bg: #ece9e1;
+  --code-bg: #e9e5da;
+  --error: #a03123;
+  --editor-font: Georgia, 'Times New Roman', 'Noto Serif CJK SC', 'Droid Sans Fallback', serif;
+}
+[data-theme='whitey'] {
+  --bg: #fefefe;
+  --fg: #222222;
+  --fg-muted: #9a9a9a;
+  --accent: #5b7083;
+  --border: #eeeeee;
+  --sidebar-bg: #fafafa;
+  --code-bg: #f7f7f7;
+  --error: #c0392b;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
@@ -120,3 +143,29 @@ body {
   background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 6px;
   font-size: 13px; z-index: 200;
 }
+
+.settings-dialog {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1em 1.5em 1.3em; min-width: 420px; font-size: 14px;
+}
+.settings-header { display: flex; justify-content: space-between; align-items: center; }
+.settings-header h2 { font-size: 1.1em; margin: 0.2em 0 0.6em; }
+.settings-close {
+  background: none; border: none; color: var(--fg-muted); font-size: 1.4em;
+  cursor: pointer; padding: 0 0.2em; line-height: 1;
+}
+.settings-close:hover { color: var(--fg); }
+.settings-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 1.5em; padding: 0.45em 0;
+}
+.settings-row > span:first-child { color: var(--fg); }
+.settings-control { display: flex; align-items: center; gap: 0.6em; }
+.settings-control input[type='range'] { width: 160px; accent-color: var(--accent); }
+.settings-value { color: var(--fg-muted); min-width: 4em; text-align: right; font-variant-numeric: tabular-nums; }
+.settings-row select {
+  background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 6px;
+}
+.settings-row input[type='checkbox'], .settings-radio input { accent-color: var(--accent); }
+.settings-radio { display: flex; align-items: center; gap: 0.3em; color: var(--fg); }
