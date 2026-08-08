@@ -1,19 +1,22 @@
 .cm-editor { height: 100%; background: var(--bg); color: var(--fg); }
-.cm-scroller {
+/* .cm-editor prefix beats CodeMirror's own baseTheme rules for .cm-scroller
+   and .cm-content (equal specificity would otherwise let injection order
+   decide the winner — see line-height/margin/padding below). */
+.cm-editor .cm-scroller {
   font-family: var(--editor-font, sans-serif);
   line-height: var(--editor-line-height, 1.7);
   padding: 2rem 0 40vh 0;
 }
-/* .cm-editor prefix beats CodeMirror's own baseTheme .cm-content rule (equal
-   specificity would otherwise let injection order decide the winner). */
 .cm-editor .cm-content {
   max-width: min(var(--editor-max-width, 46rem), calc(100% - 2 * var(--editor-margin, 3rem)));
   margin: 0 auto;
   padding: 4px 0;
   caret-color: var(--fg);
 }
-.cm-line { padding: 0 2px; }
-.cm-cursor { border-left-color: var(--fg); }
+.cm-editor .cm-line { padding: 0 2px; }
+/* longhand border-left-color vs. CodeMirror's shorthand border-left: needs
+   the same specificity boost or the cursor renders black in every theme. */
+.cm-editor .cm-cursor { border-left-color: var(--fg); }
 
 /* inline tokens */
 .tok-strong { font-weight: 700; }

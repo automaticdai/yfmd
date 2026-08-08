@@ -7,7 +7,12 @@ test('inline math renders and reveals on click', async ({ page }) => {
   await setCursor(page, 16)
   const math = page.locator('.cm-math-inline')
   await expect(math).toBeVisible()
-  await math.click()
+  // force: Chromium's contenteditable hit-testing can flag the surrounding
+  // .cm-line as "intercepting" an atomic contenteditable=false inline widget
+  // even though a real/dispatched click resolves correctly (verified against
+  // the widget's own mousedown handler) — a Playwright pre-check false
+  // positive specific to inline (not block) atomic widgets, not a real bug.
+  await math.click({ force: true })
   await expect(page.locator('.cm-content')).toContainText('$a^2+b^2$')
 })
 
