@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { docText, openApp, setCursor, setDoc } from './helpers'
+import { docText, menuAction, openApp, setCursor, setDoc } from './helpers'
 
 test('heading renders large with marker hidden until cursor enters', async ({ page }) => {
   await openApp(page)
@@ -40,4 +40,26 @@ test('typing markdown renders live', async ({ page }) => {
   await page.keyboard.type('## Section')
   await expect(page.locator('.cm-heading-line-2')).toBeVisible()
   expect(await docText(page)).toBe('## Section')
+})
+
+test('Edit menu applies a heading and toggles it back to a paragraph', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'hello')
+  await setCursor(page, 0)
+  await menuAction(page, 'Edit', 'heading:2')
+  expect(await docText(page)).toBe('## hello')
+  await menuAction(page, 'Edit', 'heading:2')   // same level again -> toggles off
+  expect(await docText(page)).toBe('hello')
+})
+
+test('Edit menu inserts a table that renders as a widget', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'notes')
+  await setCursor(page, 5)
+  await menuAction(page, 'Edit', 'table')
+  // the "Header 1" placeholder is left selected for immediate typing, so the
+  // table stays as raw source until the cursor moves away from it
+  await setCursor(page, 0)
+  await expect(page.locator('.cm-table-widget')).toBeVisible()
+  await expect(page.locator('.cm-table-widget th').first()).toHaveText('Header 1')
 })

@@ -8,6 +8,10 @@ import { type ConfirmResult, type DocMeta, DocumentController } from './app/docu
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
 import {
+  headingCommand, insertCodeBlock, insertHorizontalRule, insertMathBlock, insertTable,
+  listCommand, toggleQuote,
+} from './editor/block-commands'
+import {
   insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
@@ -240,6 +244,11 @@ export default function App() {
       if (THEMES.some(t => t.id === id)) setSettings(s => ({ ...s, theme: id }))
       return
     }
+    if (action.startsWith('heading:')) {
+      const level = Number(action.slice('heading:'.length)) as 0 | 1 | 2 | 3
+      if (view) { headingCommand(level)(view); view.focus() }
+      return
+    }
     switch (action) {
       case 'new': void c?.newFile(); break
       case 'open-file': void c?.openFileViaDialog(); break
@@ -275,6 +284,13 @@ export default function App() {
       case 'strike': if (view) { toggleStrikethrough(view); view.focus() } break
       case 'code': if (view) { toggleInlineCode(view); view.focus() } break
       case 'link': if (view) { insertLink(view); view.focus() } break
+      case 'quote': if (view) { toggleQuote(view); view.focus() } break
+      case 'list-unordered': if (view) { listCommand('unordered')(view); view.focus() } break
+      case 'list-ordered': if (view) { listCommand('ordered')(view); view.focus() } break
+      case 'table': if (view) { insertTable(view); view.focus() } break
+      case 'code-block': if (view) { insertCodeBlock(view); view.focus() } break
+      case 'math-block': if (view) { insertMathBlock(view); view.focus() } break
+      case 'hr': if (view) { insertHorizontalRule(view); view.focus() } break
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
       case 'quit': void quitApp(); break

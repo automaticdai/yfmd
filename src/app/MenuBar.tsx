@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { THEMES } from './settings'
 
 export interface MenuAction { action: string; label: string; shortcut?: string }
-export interface MenuGroup { title: string; items: MenuAction[] }
+export interface MenuSeparator { separator: true }
+export type MenuItem = MenuAction | MenuSeparator
+export interface MenuGroup { title: string; items: MenuItem[] }
 
 export const MENUS: MenuGroup[] = [
   {
@@ -27,6 +29,21 @@ export const MENUS: MenuGroup[] = [
       { action: 'strike', label: 'Strikethrough', shortcut: 'Ctrl+Shift+X' },
       { action: 'code', label: 'Inline Code', shortcut: 'Ctrl+`' },
       { action: 'link', label: 'Insert Link', shortcut: 'Ctrl+K' },
+      { separator: true },
+      { action: 'heading:1', label: 'Heading 1', shortcut: 'Ctrl+1' },
+      { action: 'heading:2', label: 'Heading 2', shortcut: 'Ctrl+2' },
+      { action: 'heading:3', label: 'Heading 3', shortcut: 'Ctrl+3' },
+      { action: 'heading:0', label: 'Paragraph', shortcut: 'Ctrl+0' },
+      { action: 'quote', label: 'Quote' },
+      { separator: true },
+      { action: 'list-unordered', label: 'Bulleted List' },
+      { action: 'list-ordered', label: 'Numbered List' },
+      { separator: true },
+      { action: 'table', label: 'Table' },
+      { action: 'code-block', label: 'Code Block' },
+      { action: 'math-block', label: 'Math Block' },
+      { action: 'hr', label: 'Horizontal Rule' },
+      { separator: true },
       { action: 'find', label: 'Find / Replace', shortcut: 'Ctrl+F' },
     ],
   },
@@ -72,17 +89,21 @@ export function MenuBar({ onAction, checkedActions }: MenuBarProps) {
           </button>
           {open === menu.title && (
             <div className="menu-items">
-              {menu.items.map(item => (
-                <button
-                  key={item.action}
-                  data-action={item.action}
-                  className={checkedActions?.has(item.action) ? 'checked' : undefined}
-                  onClick={() => { setOpen(null); onAction(item.action) }}
-                >
-                  <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
-                  {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
-                </button>
-              ))}
+              {menu.items.map((item, i) =>
+                'separator' in item ? (
+                  <div className="menu-separator" key={i} />
+                ) : (
+                  <button
+                    key={item.action}
+                    data-action={item.action}
+                    className={checkedActions?.has(item.action) ? 'checked' : undefined}
+                    onClick={() => { setOpen(null); onAction(item.action) }}
+                  >
+                    <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
+                    {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
+                  </button>
+                ),
+              )}
             </div>
           )}
         </div>
