@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "yfmarkdown",
-  "version": "0.2.0",
+  "productName": "yfmd",
+  "version": "0.2.1",
   "identifier": "com.automaticdai.yfmd",
   "build": {
     "frontendDist": "../dist",
@@ -10,7 +10,7 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "windows": [{ "title": "yfmarkdown", "width": 1100, "height": 780 }],
+    "windows": [{ "title": "yfmd", "width": 1100, "height": 780 }],
     "security": {
       "csp": null,
       "assetProtocol": { "enable": true, "scope": ["**"] }

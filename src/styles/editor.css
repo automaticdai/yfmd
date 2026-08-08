@@ -4,10 +4,12 @@
   line-height: var(--editor-line-height, 1.7);
   padding: 2rem 0 40vh 0;
 }
-.cm-content {
-  max-width: var(--editor-max-width, 46rem);
+/* .cm-editor prefix beats CodeMirror's own baseTheme .cm-content rule (equal
+   specificity would otherwise let injection order decide the winner). */
+.cm-editor .cm-content {
+  max-width: min(var(--editor-max-width, 46rem), calc(100% - 2 * var(--editor-margin, 3rem)));
   margin: 0 auto;
-  padding: 0 var(--editor-margin, 3rem);
+  padding: 4px 0;
   caret-color: var(--fg);
 }
 .cm-line { padding: 0 2px; }

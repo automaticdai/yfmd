@@ -1,4 +1,4 @@
-# yfmarkdown — Typora-style Markdown Editor: Design Spec
+# yfmd — Typora-style Markdown Editor: Design Spec
 
 **Date:** 2026-07-17
 **Status:** Approved by user

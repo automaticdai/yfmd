@@ -1,4 +1,4 @@
-# yfmarkdown Implementation Plan
+# yfmd Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,8 +10,8 @@
 
 ## Global Constraints
 
-- Spec: `docs/superpowers/specs/2026-07-17-yfmarkdown-design.md`. The markdown text is never auto-normalized, with ONE exception: table pipe-alignment when the cursor enters a table.
-- Product name `yfmarkdown`, Tauri identifier `com.automaticdai.yfmd`, window title `yfmarkdown`.
+- Spec: `docs/superpowers/specs/2026-07-17-yfmd-design.md`. The markdown text is never auto-normalized, with ONE exception: table pipe-alignment when the cursor enters a table.
+- Product name `yfmd`, Tauri identifier `com.automaticdai.yfmd`, window title `yfmd`.
 - TypeScript strict mode everywhere; Rust only in `src-tauri/`.
 - Exported HTML must work offline: math is rendered as MathML (`katex` with `output: 'mathml'`), mermaid as inline SVG, CSS inlined. No CDN references.
 - Unit tests: Vitest, node environment, colocated `src/**/*.test.ts`. E2E: Playwright in `e2e/`, running against the Vite dev server on port 5183 (browser FileService).
@@ -84,7 +84,7 @@ playwright-report/
 
 ```json
 {
-  "name": "yfmarkdown",
+  "name": "yfmd",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -183,7 +183,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>yfmarkdown</title>
+    <title>yfmd</title>
   </head>
   <body>
     <div id="root"></div>
@@ -217,7 +217,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 ```tsx
 export default function App() {
-  return <div className="app">yfmarkdown</div>
+  return <div className="app">yfmd</div>
 }
 ```
 
@@ -259,7 +259,7 @@ body {
 `src/assets/welcome.md`:
 
 ````markdown
-# Welcome to yfmarkdown
+# Welcome to yfmd
 
 A **Typora-style** markdown editor: what you type renders *in place*, and the
 block your cursor touches reveals its raw ~~text~~ syntax.
@@ -322,7 +322,7 @@ Expected: 1 passed.
 Run: `npm run typecheck`
 Expected: exit 0.
 
-Run: `npm run dev &` then `curl -s http://localhost:5173 | grep yfmarkdown` then kill the dev server.
+Run: `npm run dev &` then `curl -s http://localhost:5173 | grep yfmd` then kill the dev server.
 Expected: title found in HTML.
 
 - [ ] **Step 3: Commit**
@@ -3783,7 +3783,7 @@ If webkit2gtk (or `libgtk-3-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`
 - [ ] **Step 2: Scaffold Tauri**
 
 ```bash
-npx tauri init --ci --app-name yfmarkdown --window-title yfmarkdown \
+npx tauri init --ci --app-name yfmd --window-title yfmd \
   --frontend-dist ../dist --dev-url http://localhost:5173 \
   --before-dev-command "npm run dev" --before-build-command "npm run build"
 ```
@@ -3803,7 +3803,7 @@ Overwrite `src-tauri/tauri.conf.json` (keep the generated `$schema` and `bundle.
 ```json
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "yfmarkdown",
+  "productName": "yfmd",
   "version": "0.1.0",
   "identifier": "com.automaticdai.yfmd",
   "build": {
@@ -3813,7 +3813,7 @@ Overwrite `src-tauri/tauri.conf.json` (keep the generated `$schema` and `bundle.
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{ "title": "yfmarkdown", "width": 1100, "height": 780 }],
+    "windows": [{ "title": "yfmd", "width": 1100, "height": 780 }],
     "security": {
       "csp": null,
       "assetProtocol": { "enable": true, "scope": ["**"] }
@@ -3829,7 +3829,7 @@ Overwrite `src-tauri/tauri.conf.json` (keep the generated `$schema` and `bundle.
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "yfmarkdown main window",
+  "description": "yfmd main window",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -3913,7 +3913,7 @@ pub fn run() {
 }
 ```
 
-(`src-tauri/src/main.rs` stays as generated: it calls `yfmarkdown_lib::run()` — match the generated lib name.)
+(`src-tauri/src/main.rs` stays as generated: it calls `yfmd_lib::run()` — match the generated lib name.)
 
 - [ ] **Step 4: Implement TauriFileService**
 

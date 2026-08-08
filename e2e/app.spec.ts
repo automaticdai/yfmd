@@ -47,14 +47,16 @@ test('settings dialog changes text width live and persists', async ({ page }) =>
     input.dispatchEvent(new Event('input', { bubbles: true }))
     input.dispatchEvent(new Event('change', { bubbles: true }))
   }, '60')
+  // rendered width, not getComputedStyle (Chromium keeps min()/calc() with a
+  // percentage symbolic there instead of resolving it to a used-value px)
   const width = () => page.evaluate(() =>
-    getComputedStyle(document.querySelector('.cm-content')!).maxWidth)
-  expect(await width()).toBe('960px')   // 60rem at 16px root font
+    document.querySelector('.cm-content')!.getBoundingClientRect().width)
+  expect(await width()).toBe(960)   // 60rem at 16px root font
   await page.keyboard.press('Escape')
   await expect(page.locator('.settings-dialog')).toHaveCount(0)
   await page.reload()
   await expect(page.locator('.cm-content')).toBeVisible()
-  expect(await width()).toBe('960px')
+  expect(await width()).toBe(960)
 })
 
 test('editing marks dirty; save clears it', async ({ page }) => {

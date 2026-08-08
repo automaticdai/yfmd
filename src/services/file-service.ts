@@ -68,12 +68,23 @@ export function buildTree(paths: string[]): FileEntry[] {
   return root
 }
 
-export async function createFileService(): Promise<FileService> {
-  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-    // @ts-ignore — tauri-file-service defined in later task
-    const { TauriFileService } = await import('./tauri-file-service')
-    return new TauriFileService()
+let cachedService: Promise<FileService> | null = null
+
+/**
+ * Memoized: React StrictMode mounts the app effect twice, and a second,
+ * un-cached instance would overwrite window.__yfmdFs / native state from its
+ * constructor before the (disposed) first call's promise even settles.
+ */
+export function createFileService(): Promise<FileService> {
+  if (!cachedService) {
+    cachedService = (async () => {
+      if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+        const { TauriFileService } = await import('./tauri-file-service')
+        return new TauriFileService()
+      }
+      const { BrowserFileService } = await import('./browser-file-service')
+      return new BrowserFileService()
+    })()
   }
-  const { BrowserFileService } = await import('./browser-file-service')
-  return new BrowserFileService()
+  return cachedService
 }
