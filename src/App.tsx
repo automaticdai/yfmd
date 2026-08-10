@@ -18,6 +18,7 @@ import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
 import { createExtensions, resolverCompartment, themeCompartment } from './editor/setup'
 import { extractOutline, type OutlineItem } from './outline/outline'
+import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
 import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } from './app/settings'
 import { SettingsDialog } from './app/SettingsDialog'
 import { createFileService, type FileService } from './services/file-service'
@@ -169,6 +170,13 @@ export default function App() {
     root.style.setProperty('--editor-margin', `${settings.sideMargin}rem`)
     root.style.setProperty('--editor-font-size', `${settings.fontSize}px`)
     root.style.setProperty('--editor-line-height', String(settings.lineHeight))
+    // no stack = "follow theme": clear the override so the stylesheet decides
+    const body = fontStack(settings.bodyFont, BODY_FONTS)
+    if (body) root.style.setProperty('--editor-font', body)
+    else root.style.removeProperty('--editor-font')
+    const code = fontStack(settings.codeFont, CODE_FONTS)
+    if (code) root.style.setProperty('--code-font', code)
+    else root.style.removeProperty('--code-font')
     saveSettings(settings)
     applyEditorTheme()
   }, [settings, applyEditorTheme])

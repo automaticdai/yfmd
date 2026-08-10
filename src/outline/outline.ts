@@ -1,5 +1,6 @@
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState } from '@codemirror/state'
+import { frontmatterRange, insideFrontmatter } from '../editor/frontmatter'
 
 export interface OutlineItem { level: number; text: string; from: number }
 
@@ -19,8 +20,11 @@ function cleanHeadingText(raw: string): string {
 
 export function extractOutline(state: EditorState): OutlineItem[] {
   const items: OutlineItem[] = []
+  const frontmatter = frontmatterRange(state)
   syntaxTree(state).iterate({
     enter(node): boolean | void {
+      // a trailing '---' fence turns the last metadata line into a Setext heading
+      if (insideFrontmatter(frontmatter, node.from, node.to)) return false
       const atx = ATX.exec(node.name)
       const setext = SETEXT.exec(node.name)
       if (atx || setext) {

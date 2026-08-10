@@ -18,6 +18,17 @@ function ranges(set: DecorationSet): [number, number][] {
   return out
 }
 
+describe('frontmatter', () => {
+  it('does not turn the fences into horizontal rules', () => {
+    const set = buildWidgetDecorations(mk('---\ntitle: x\ntags:\n---\n\n# Body\n', 30))
+    expect(ranges(set)).toEqual([])
+  })
+  it('still renders an horizontal rule further down the document', () => {
+    const doc = '---\na: 1\n---\n\ntext\n\n---\n'
+    expect(ranges(buildWidgetDecorations(mk(doc, 0)))).toEqual([[20, 23]])
+  })
+})
+
 describe('image widgets', () => {
   it('replaces an image when cursor is outside', () => {
     const doc = 'see ![alt text](pic.png) here'

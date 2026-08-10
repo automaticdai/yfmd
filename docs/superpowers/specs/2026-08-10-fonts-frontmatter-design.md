@@ -93,28 +93,30 @@ lezer-markdown parses the opening `---` as a `HorizontalRule` (replaced by an
 `<hr>` widget), `  - dnn` as a `BulletList`, and `tags:` + closing `---` as a
 `SetextHeading2` — which also puts a phantom "tags:" entry in the outline pane.
 
-### Parser extension (`src/editor/frontmatter.ts`, new)
+### Range scanner (`src/editor/frontmatter.ts`, new)
 
 ```ts
-export const frontmatterExtension: MarkdownConfig
+export interface FrontmatterRange { from: number; to: number }
+export function findFrontmatter(text: string): FrontmatterRange | null
+export function frontmatterRange(state: EditorState): FrontmatterRange | null
+export function insideFrontmatter(r: FrontmatterRange | null, from: number, to: number): boolean
 export function stripFrontmatter(text: string): string
 ```
 
-An eager leaf block parser (`parseBlock`, `before: 'HorizontalRule'`) that fires
-only when `cx.lineStart === 0` and the line is exactly `---` (trailing whitespace
-allowed). It scans forward for a closing `---` or `...` line, consumes through it
-with `cx.nextLine()`, and adds one `Frontmatter` element containing two
-`FrontmatterMark` children (the fences) and a `FrontmatterContent` child.
+`findFrontmatter` requires `---` (trailing whitespace allowed) as the very first
+line and returns the range through the first following `---` or `...` line.
+**No closing fence → no frontmatter**, so typing `---` at the top of a document
+does not swallow everything below it while the user is still typing.
 
-`defineNodes` declares the three node types; `FrontmatterMark` carries
-`style: tags.meta` so the fences render muted through the existing `.tok-meta` rule.
+A lezer block parser would put the construct in the syntax tree, which is the
+tidier place for it, but it cannot get there: a block parser can only look one
+line ahead (`peekLine`), and scanning further means consuming lines it has no way
+to give back if the closing fence never arrives. Scanning the text keeps the
+"needs a closing fence" rule and leaves incremental parsing untouched.
 
-**No closing marker → not frontmatter.** The parser returns `false` and normal
-markdown rules apply, so typing `---` at the top of a document does not swallow
-everything below it while the user is still typing.
-
-Wired in `setup.ts` as `markdown({ base: markdownLanguage, codeLanguages: languages,
-extensions: [frontmatterExtension] })`.
+`frontmatterRange` reads at most the first 8 KB of the document — truncation can
+only hide a closing fence, never invent one — so a keystroke never rescans a large
+file.
 
 Accepted ambiguity: a document that legitimately opens with a thematic break, text,
 and a Setext underline now reads as frontmatter. Typora, Obsidian and Jekyll all
@@ -122,15 +124,20 @@ behave this way.
 
 ### Rendering
 
-With the tree correct, the HR widget, phantom list and bogus outline entry all
-disappear on their own. The visible box is one new case in
-`buildInlineDecorations`:
+Three consumers that walk the syntax tree skip any node lying wholly inside the
+range — `buildInlineDecorations`, `buildWidgetDecorations` (kills the `<hr>`
+widget) and `extractOutline` (kills the phantom "tags:" entry):
 
 ```ts
-case 'Frontmatter':
-  eachLine(node.from, node.to, FRONTMATTER_LINE)   // + -first / -last on the edges
-  return false
+if (insideFrontmatter(frontmatter, node.from, node.to)) return false
 ```
+
+`buildInlineDecorations` then adds the box itself, one line decoration per line
+with `cm-frontmatter-first` / `-last` on the edges for the rounded corners.
+
+Syntax highlighting is driven off the tree independently of these consumers, so
+`.cm-editor .cm-frontmatter-line span` resets colour and weight inside the box —
+without it a timestamp like `22:00:17` picks up emoji-shortcode colouring.
 
 `editor.css` styles `.cm-frontmatter-line` as a `--code-bg` block in
 `var(--code-font)` at 0.9em, `--fg-muted`, padded, with the first and last lines
@@ -156,11 +163,14 @@ standalone and takes no settings. Out of scope.
   unknown ids return `null`.
 - `settings.test.ts` — `bodyFont`/`codeFont` defaults, round-trip, invalid id →
   default, legacy blob without the keys.
-- `frontmatter.test.ts` — the example above parses to one `Frontmatter` node with
-  the expected range; unterminated block is not frontmatter; a block not at offset 0
-  is not frontmatter; `...` closer; CRLF; `stripFrontmatter` for each case.
-- `inline-decorations.test.ts` — frontmatter lines get `.cm-frontmatter-line`, and
-  `buildWidgetDecorations` emits no HR widget for the fences.
+- `frontmatter.test.ts` — the example above yields the expected range; unterminated
+  block is not frontmatter; a block not at offset 0 is not frontmatter; `...` closer;
+  CRLF; empty block; `stripFrontmatter` for each case.
+- `inline-decorations.test.ts` — frontmatter lines get `.cm-frontmatter-line` with
+  the edge classes, and no markdown syntax is hidden inside the block.
+- `widget-field.test.ts` — no HR widget for the fences, but one further down the
+  document still renders.
+- `outline.test.ts` — the phantom Setext heading is gone.
 - `render-html.test.ts` — frontmatter absent from rendered HTML; a document
   without frontmatter is unchanged.
 

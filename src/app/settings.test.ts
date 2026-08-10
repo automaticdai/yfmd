@@ -44,6 +44,22 @@ describe('loadSettings', () => {
     expect(s.lineHeight).toBe(2.2)
     expect(s.sidebarTab).toBe('files')
   })
+  it('defaults both fonts to the sentinels that defer to the stylesheet', () => {
+    expect(DEFAULT_SETTINGS.bodyFont).toBe('theme')
+    expect(DEFAULT_SETTINGS.codeFont).toBe('default')
+  })
+  it('keeps font ids that exist in the catalogue', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, bodyFont: 'georgia', codeFont: 'fira' })
+    const s = loadSettings()
+    expect(s.bodyFont).toBe('georgia')
+    expect(s.codeFont).toBe('fira')
+  })
+  it('falls back to defaults for unknown font ids', () => {
+    storage.setItem('yfmd-settings', JSON.stringify({ bodyFont: 'papyrus', codeFont: 42 }))
+    const s = loadSettings()
+    expect(s.bodyFont).toBe('theme')
+    expect(s.codeFont).toBe('default')
+  })
   it('survives corrupt JSON', () => {
     storage.setItem('yfmd-settings', '{not json')
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS)

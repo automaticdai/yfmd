@@ -18,6 +18,10 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Tables** — render as real HTML tables; clicking one drops you into
   pipe-aligned source, re-aligned automatically when the cursor enters
 - **Task lists** — clickable checkboxes that update the source text
+- **Frontmatter** — a leading `---` YAML block renders as one quiet metadata box
+  instead of a rule, a list and a stray heading; excluded from exports
+- **Fonts** — editor and code fonts picked in Settings, each stack backed by CJK
+  fallbacks
 - **Sidebar** — folder file tree and a live document outline with jump-to-heading
 - **Export** — standalone offline HTML (MathML math, inline mermaid SVG, inlined
   CSS/highlighting) and PDF via the system print dialog

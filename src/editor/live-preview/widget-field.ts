@@ -3,6 +3,7 @@ import type { EditorState, Range } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
+import { frontmatterRange, insideFrontmatter } from '../frontmatter'
 import { selectionTouches, selectionTouchesLine } from './cursor-context'
 import { imageResolver, rebuildWidgets, uiTheme } from './facets'
 import { MathWidget, findMathRanges } from './math'
@@ -59,9 +60,12 @@ export function buildWidgetDecorations(state: EditorState): DecorationSet {
   const widgets: Range<Decoration>[] = []
   const resolve = state.facet(imageResolver)
   const theme = state.facet(uiTheme)
+  const frontmatter = frontmatterRange(state)
 
   syntaxTree(state).iterate({
     enter(node): boolean | void {
+      // the fences are frontmatter delimiters, not horizontal rules
+      if (insideFrontmatter(frontmatter, node.from, node.to)) return false
       if (node.name === 'FencedCode') {
         const info = childText(state, node.node, 'CodeInfo').trim().toLowerCase()
         if (info === 'mermaid') {

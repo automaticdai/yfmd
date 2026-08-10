@@ -9,6 +9,9 @@
   --error: #c0392b;
   --editor-font: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue',
     'Noto Sans CJK SC', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'Droid Sans Fallback', sans-serif;
+  /* themes never override this one; --code-font (set from Settings) does */
+  --code-font-default: 'Cascadia Code', 'Fira Code', Consolas,
+    'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace;
 }
 [data-theme='night'] {
   --bg: #1e1e1e;
@@ -166,7 +169,14 @@ body {
 .settings-value { color: var(--fg-muted); min-width: 4em; text-align: right; font-variant-numeric: tabular-nums; }
 .settings-row select {
   background: var(--bg); color: var(--fg); border: 1px solid var(--border);
-  border-radius: 4px; padding: 3px 6px;
+  border-radius: 4px; padding: 3px 6px; width: 13em;
 }
+.settings-sample { align-items: flex-start; }
+.settings-sample-text {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 0.2em; text-align: right; color: var(--fg-muted);
+}
+.settings-sample-body { color: var(--fg); font-family: var(--editor-font, sans-serif); }
+.settings-sample-code { font-family: var(--code-font, var(--code-font-default)); font-size: 0.9em; }
 .settings-row input[type='checkbox'], .settings-radio input { accent-color: var(--accent); }
 .settings-radio { display: flex; align-items: center; gap: 0.3em; color: var(--fg); }

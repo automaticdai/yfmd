@@ -9,6 +9,13 @@ describe('renderBodyHtml', () => {
     expect(html).toContain('<s>s</s>')
     expect(html).toContain('<table>')
   })
+  it('leaves frontmatter out of the export', () => {
+    const html = renderBodyHtml('---\ntitle: Doc\ntags:\n  - a\n---\n\n# Body\n')
+    expect(html).toContain('<h1>Body</h1>')
+    expect(html).not.toContain('title: Doc')
+    expect(html).not.toContain('<hr>')
+    expect(html).not.toContain('<ul>')
+  })
   it('renders task lists as disabled checkboxes', () => {
     const html = renderBodyHtml('- [x] done\n- [ ] todo')
     expect(html).toContain('type="checkbox" disabled checked')

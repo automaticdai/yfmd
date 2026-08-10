@@ -20,6 +20,43 @@ function hiddenRanges(set: DecorationSet): [number, number][] {
   return out
 }
 
+function lineClasses(set: DecorationSet): string[] {
+  const out: string[] = []
+  const it = set.iter()
+  while (it.value) { out.push((it.value.spec as { class: string }).class); it.next() }
+  return out
+}
+
+const FRONTMATTER = '---\ntitle: 深度神经网络\ntags:\n  - dnn\n---\n\n# Body\n'
+
+describe('frontmatter', () => {
+  it('boxes every frontmatter line and marks the edges', () => {
+    const classes = lineClasses(buildInlineDecorations(mkState(FRONTMATTER, FRONTMATTER.length - 1)).lines)
+    expect(classes.filter(c => c.includes('frontmatter'))).toEqual([
+      'cm-frontmatter-line cm-frontmatter-first',
+      'cm-frontmatter-line',
+      'cm-frontmatter-line',
+      'cm-frontmatter-line',
+      'cm-frontmatter-line cm-frontmatter-last',
+    ])
+  })
+  it('keeps markdown structure out of the block', () => {
+    // 'title: **x**' + '---' otherwise parses as a Setext heading whose underline
+    // gets dimmed, with the '**' emphasis marks hidden on top
+    const doc = '---\ntitle: **x**\n---\n\n# Body\n'
+    const { hides } = buildInlineDecorations(mkState(doc, doc.length - 1))
+    expect(hiddenRanges(hides)).toEqual([])
+  })
+  it('still decorates the document after the block', () => {
+    const classes = lineClasses(buildInlineDecorations(mkState(FRONTMATTER, 0)).lines)
+    expect(classes).toContain('cm-heading-line cm-heading-line-1')
+  })
+  it('leaves an unterminated block as ordinary markdown', () => {
+    const classes = lineClasses(buildInlineDecorations(mkState('---\ntitle: x\n\n# Body\n', 0)).lines)
+    expect(classes).not.toContain('cm-frontmatter-line')
+  })
+})
+
 describe('selectionTouches', () => {
   it('touches at boundaries', () => {
     const s = mkState('abcdef', 3)

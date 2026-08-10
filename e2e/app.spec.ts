@@ -36,6 +36,43 @@ test('theme menu switches theme and persists', async ({ page }) => {
   await expect(page.locator('[data-action="theme:night"]')).toHaveClass(/checked/)
 })
 
+test('settings dialog changes the editor and code fonts, and persists them', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'plain text\n\n```js\nlet x = 1\n```\n')
+  await menuAction(page, 'File', 'settings')
+  await page.locator('[data-setting="bodyFont"]').selectOption('georgia')
+  await page.locator('[data-setting="codeFont"]').selectOption('courier')
+
+  const fonts = () => page.evaluate(() => ({
+    body: getComputedStyle(document.querySelector('.cm-scroller')!).fontFamily,
+    code: getComputedStyle(document.querySelector('.cm-codeblock-line')!).fontFamily,
+  }))
+  expect((await fonts()).body).toContain('Georgia')
+  expect((await fonts()).code).toContain('Courier New')
+
+  await page.keyboard.press('Escape')
+  await page.reload()
+  await expect(page.locator('.cm-content')).toBeVisible()
+  await setDoc(page, 'plain text\n\n```js\nlet x = 1\n```\n')
+  expect((await fonts()).body).toContain('Georgia')
+  expect((await fonts()).code).toContain('Courier New')
+})
+
+test('"follow theme" hands the editor font back to the theme', async ({ page }) => {
+  await openApp(page)
+  await menuAction(page, 'File', 'settings')
+  await page.locator('[data-setting="bodyFont"]').selectOption('verdana')
+  await page.locator('[data-setting="theme"]').selectOption('newsprint')
+  const bodyFont = () => page.evaluate(() =>
+    getComputedStyle(document.querySelector('.cm-scroller')!).fontFamily)
+  expect(await bodyFont()).toContain('Verdana')
+  // Newsprint's own serif stack only reappears once the override is cleared
+  await page.locator('[data-setting="bodyFont"]').selectOption('theme')
+  const themeFont = await bodyFont()
+  expect(themeFont).toContain('Georgia')
+  expect(themeFont).not.toContain('Verdana')
+})
+
 test('settings dialog changes text width live and persists', async ({ page }) => {
   await openApp(page)
   await menuAction(page, 'File', 'settings')

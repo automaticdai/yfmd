@@ -6,6 +6,7 @@ import type { RenderRule } from 'markdown-it/lib/renderer.mjs'
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import mermaid from 'mermaid'
+import { stripFrontmatter } from '../editor/frontmatter'
 
 function mathInlineRule(state: StateInline, silent: boolean): boolean {
   const { src, pos } = state
@@ -115,7 +116,7 @@ export function createExportRenderer(): MarkdownIt {
 const renderer = createExportRenderer()
 
 export function renderBodyHtml(markdown: string): string {
-  return renderer.render(markdown)
+  return renderer.render(stripFrontmatter(markdown))
 }
 
 let exportMermaidReady = false

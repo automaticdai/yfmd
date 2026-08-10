@@ -1,3 +1,5 @@
+import { BODY_FONTS, CODE_FONTS, findFont, type FontOption } from './fonts'
+
 export type ThemeName = 'github' | 'night' | 'newsprint' | 'whitey'
 
 export interface ThemeInfo { id: ThemeName; label: string; dark: boolean }
@@ -11,6 +13,8 @@ export const THEMES: ThemeInfo[] = [
 
 export interface Settings {
   theme: ThemeName
+  bodyFont: string      // BODY_FONTS id
+  codeFont: string      // CODE_FONTS id
   maxWidth: number      // rem
   sideMargin: number    // rem
   fontSize: number      // px
@@ -21,6 +25,8 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'github',
+  bodyFont: 'theme',
+  codeFont: 'default',
   maxWidth: 46,
   sideMargin: 3,
   fontSize: 16,
@@ -42,6 +48,10 @@ const LEGACY_THEME_KEY = 'yfmd-theme'
 function num(value: unknown, fallback: number, min: number, max: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback
   return Math.min(max, Math.max(min, n))
+}
+
+function fontId(value: unknown, list: FontOption[], fallback: string): string {
+  return typeof value === 'string' && findFont(value, list) ? value : fallback
 }
 
 export function loadSettings(): Settings {
@@ -73,6 +83,8 @@ export function loadSettings(): Settings {
   const D = DEFAULT_SETTINGS
   return {
     theme,
+    bodyFont: fontId(raw.bodyFont, BODY_FONTS, D.bodyFont),
+    codeFont: fontId(raw.codeFont, CODE_FONTS, D.codeFont),
     maxWidth: num(raw.maxWidth, D.maxWidth, L.maxWidth.min, L.maxWidth.max),
     sideMargin: num(raw.sideMargin, D.sideMargin, L.sideMargin.min, L.sideMargin.max),
     fontSize: num(raw.fontSize, D.fontSize, L.fontSize.min, L.fontSize.max),

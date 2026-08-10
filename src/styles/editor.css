@@ -23,7 +23,7 @@
 .tok-em { font-style: italic; }
 .tok-strike { text-decoration: line-through; }
 .tok-mono, .cm-inline-code {
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace;
+  font-family: var(--code-font, var(--code-font-default));
   font-size: 0.9em;
 }
 .cm-inline-code { background: var(--code-bg); border-radius: 3px; padding: 1px 2px; }
@@ -40,13 +40,33 @@
 .cm-heading-line-5 { font-size: 1em; }
 .cm-heading-line-6 { font-size: 1em; color: var(--fg-muted); }
 
+/* frontmatter — matching .cm-line's specificity so the paddings below win by
+   source order rather than !important */
+.cm-editor .cm-frontmatter-line {
+  background: var(--code-bg);
+  font-family: var(--code-font, var(--code-font-default));
+  font-size: 0.9em;
+  color: var(--fg-muted);
+  padding: 0 1em;
+}
+/* syntax highlighting runs off the tree, which still sees markdown in here:
+   dates like 22:00:17 pick up emoji-shortcode colouring without this */
+.cm-editor .cm-frontmatter-line span {
+  color: inherit; background: none; font-weight: inherit;
+  font-style: inherit; text-decoration: none;
+}
+.cm-editor .cm-frontmatter-first { padding-top: 0.5em; border-radius: 6px 6px 0 0; }
+.cm-editor .cm-frontmatter-last {
+  padding-bottom: 0.5em; border-radius: 0 0 6px 6px; margin-bottom: 0.5em;
+}
+
 /* blockquote */
 .cm-quote-line { border-left: 4px solid var(--border); padding-left: 1em !important; color: var(--fg-muted); }
 
 /* code blocks */
 .cm-codeblock-line {
   background: var(--code-bg);
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace;
+  font-family: var(--code-font, var(--code-font-default));
   font-size: 0.9em;
   padding-left: 1em !important;
   padding-right: 1em !important;
@@ -64,7 +84,7 @@
 .tok-meta { color: var(--fg-muted); }
 
 /* tables (source view while editing) */
-.cm-table-line { font-family: 'Cascadia Code', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', 'Droid Sans Fallback', monospace; font-size: 0.9em; }
+.cm-table-line { font-family: var(--code-font, var(--code-font-default)); font-size: 0.9em; }
 /* table widget */
 .cm-table-widget { border-collapse: collapse; margin: 0.5em 0; cursor: pointer; }
 .cm-table-widget th, .cm-table-widget td { border: 1px solid var(--border); padding: 0.35em 0.9em; }

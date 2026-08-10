@@ -1,6 +1,7 @@
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Range } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
+import { frontmatterRange, insideFrontmatter } from '../frontmatter'
 import { selectionTouches, selectionTouchesLine } from './cursor-context'
 
 const hide = Decoration.replace({})
@@ -9,6 +10,9 @@ const HEADING_LINE = [1, 2, 3, 4, 5, 6].map(n =>
 const QUOTE_LINE = Decoration.line({ class: 'cm-quote-line' })
 const CODEBLOCK_LINE = Decoration.line({ class: 'cm-codeblock-line' })
 const TABLE_LINE = Decoration.line({ class: 'cm-table-line' })
+const FRONTMATTER_LINE = Decoration.line({ class: 'cm-frontmatter-line' })
+const FRONTMATTER_FIRST = Decoration.line({ class: 'cm-frontmatter-line cm-frontmatter-first' })
+const FRONTMATTER_LAST = Decoration.line({ class: 'cm-frontmatter-line cm-frontmatter-last' })
 const DIM = Decoration.mark({ class: 'cm-syntax-dim' })
 const INLINE_CODE = Decoration.mark({ class: 'cm-inline-code' })
 const LINK_TEXT = Decoration.mark({ class: 'cm-link-text' })
@@ -19,6 +23,7 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
   const hides: Range<Decoration>[] = []
   const lines: Range<Decoration>[] = []
   const doc = state.doc
+  const frontmatter = frontmatterRange(state)
 
   const eachLine = (from: number, to: number, deco: Decoration) => {
     const first = doc.lineAt(from).number
@@ -32,6 +37,9 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
 
   syntaxTree(state).iterate({
     enter(node): boolean | void {
+      // frontmatter is styled as one block; the markdown nodes lezer sees inside
+      // it (rules, lists, Setext headings) are artefacts
+      if (insideFrontmatter(frontmatter, node.from, node.to)) return false
       const name = node.name
       if (name.startsWith('ATXHeading')) {
         lines.push(HEADING_LINE[Number(name.slice(-1)) - 1].range(doc.lineAt(node.from).from))
@@ -107,6 +115,16 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
       }
     },
   })
+
+  if (frontmatter) {
+    const first = doc.lineAt(frontmatter.from).number
+    const last = doc.lineAt(frontmatter.to).number
+    for (let n = first; n <= last; n++) {
+      const deco = n === first ? FRONTMATTER_FIRST : n === last ? FRONTMATTER_LAST : FRONTMATTER_LINE
+      lines.push(deco.range(doc.line(n).from))
+    }
+  }
+
   return { hides: Decoration.set(hides, true), lines: Decoration.set(lines, true) }
 }
 

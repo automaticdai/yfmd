@@ -65,3 +65,33 @@ test('horizontal rule renders and reveals', async ({ page }) => {
   await setCursor(page, 4)
   await expect(page.locator('.cm-hr-widget')).toHaveCount(0)
 })
+
+test('frontmatter renders as one block instead of rules and lists', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, [
+    '---',
+    'title: 深度神经网络 (DNN) 在嵌入端的部署与优化',
+    'created: 2025-12-03 22:00:17',
+    'tags:',
+    '  - dnn',
+    '  - edge-ai',
+    '---',
+    '',
+    '# Body',
+  ].join('\n'))
+  await setCursor(page, 0)
+  await expect(page.locator('.cm-frontmatter-line')).toHaveCount(7)
+  await expect(page.locator('.cm-frontmatter-first')).toHaveCount(1)
+  await expect(page.locator('.cm-frontmatter-last')).toHaveCount(1)
+  await expect(page.locator('.cm-hr-widget')).toHaveCount(0)
+  // the closing fence no longer turns 'tags:' into a heading
+  await expect(page.locator('.cm-heading-line')).toHaveCount(1)
+})
+
+test('an unterminated block stays ordinary markdown', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, '---\ntitle: x\n\n# Body\n')
+  await setCursor(page, 20)
+  await expect(page.locator('.cm-frontmatter-line')).toHaveCount(0)
+  await expect(page.locator('.cm-hr-widget')).toBeVisible()
+})

@@ -16,6 +16,10 @@ describe('extractOutline', () => {
       { level: 3, text: 'Three', from: 18 },
     ])
   })
+  it('ignores frontmatter, which otherwise parses as a Setext heading', () => {
+    const doc = '---\ntitle: x\ntags:\n---\n\n# Real\n'
+    expect(extractOutline(mk(doc))).toEqual([{ level: 1, text: 'Real', from: 24 }])
+  })
   it('strips inline markup from heading text', () => {
     expect(extractOutline(mk('# A **bold** `code` title'))[0].text).toBe('A bold code title')
   })

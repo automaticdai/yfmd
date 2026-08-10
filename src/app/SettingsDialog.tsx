@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { BODY_FONTS, CODE_FONTS, type FontOption, fontStack } from './fonts'
 import { SETTINGS_LIMITS, THEMES, type Settings } from './settings'
 
 interface Props {
@@ -36,6 +37,28 @@ function SliderRow({ label, setting, value, unit, min, max, step, onInput }: {
   )
 }
 
+/** Each option previews itself; the sample row below the pair shows the result. */
+function FontRow({ label, setting, fonts, value, onPick }: {
+  label: string
+  setting: string
+  fonts: FontOption[]
+  value: string
+  onPick(id: string): void
+}) {
+  return (
+    <label className="settings-row">
+      <span>{label}</span>
+      <select data-setting={setting} value={value} onChange={e => onPick(e.target.value)}>
+        {fonts.map(f => (
+          <option key={f.id} value={f.id} style={{ fontFamily: fontStack(f.id, fonts) ?? undefined }}>
+            {f.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 export function SettingsDialog({ settings, onChange, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -64,6 +87,17 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
             {THEMES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </label>
+        <FontRow label="Editor font" setting="bodyFont" fonts={BODY_FONTS}
+          value={settings.bodyFont} onPick={id => set('bodyFont', id)} />
+        <FontRow label="Code font" setting="codeFont" fonts={CODE_FONTS}
+          value={settings.codeFont} onPick={id => set('codeFont', id)} />
+        <div className="settings-row settings-sample">
+          <span>Preview</span>
+          <span className="settings-sample-text">
+            <span className="settings-sample-body">The quick brown fox · 深度神经网络 0123</span>
+            <span className="settings-sample-code">const answer = 42;</span>
+          </span>
+        </div>
         <SliderRow label="Max text width" setting="maxWidth" value={settings.maxWidth} unit="rem"
           min={L.maxWidth.min} max={L.maxWidth.max} step={L.maxWidth.step}
           onInput={v => set('maxWidth', v)} />
