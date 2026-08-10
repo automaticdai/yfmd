@@ -4,7 +4,7 @@ A Typora-style markdown editor for the desktop, built with Tauri 2 and CodeMirro
 What you type renders in place — headings, bold, math, diagrams, tables — and the
 block your cursor touches reveals its raw markdown syntax for editing.
 
-![screenshot placeholder](docs/screenshot.png)
+![yfmd editing a document, with the outline pane open in the sidebar](docs/screenshot.png)
 
 ## Features
 
