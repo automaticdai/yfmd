@@ -1,4 +1,5 @@
 import { BODY_FONTS, CODE_FONTS, findFont, type FontOption } from './fonts'
+import type { Locale } from './i18n'
 
 export type ThemeName = 'github' | 'night' | 'newsprint' | 'whitey'
 
@@ -13,6 +14,7 @@ export const THEMES: ThemeInfo[] = [
 
 export interface Settings {
   theme: ThemeName
+  language: Locale
   bodyFont: string      // BODY_FONTS id
   codeFont: string      // CODE_FONTS id
   maxWidth: number      // rem
@@ -25,6 +27,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'github',
+  language: 'en',
   bodyFont: 'theme',
   codeFont: 'default',
   maxWidth: 46,
@@ -83,6 +86,7 @@ export function loadSettings(): Settings {
   const D = DEFAULT_SETTINGS
   return {
     theme,
+    language: raw.language === 'zh-CN' ? 'zh-CN' : 'en',
     bodyFont: fontId(raw.bodyFont, BODY_FONTS, D.bodyFont),
     codeFont: fontId(raw.codeFont, CODE_FONTS, D.codeFont),
     maxWidth: num(raw.maxWidth, D.maxWidth, L.maxWidth.min, L.maxWidth.max),

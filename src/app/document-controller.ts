@@ -1,4 +1,6 @@
 import type { FileEntry, FileService } from '../services/file-service'
+import { t } from './i18n'
+import { addRecent } from './recent-files'
 
 export type ConfirmResult = 'save' | 'discard' | 'cancel'
 
@@ -56,9 +58,10 @@ export class DocumentController {
       this.host.setText(opened.content)
       this.meta.path = opened.path
       this.meta.dirty = false
+      addRecent(opened.path)
       this.emit()
     } catch (err) {
-      this.host.notify(`Could not open file: ${err instanceof Error ? err.message : String(err)}`)
+      this.host.notify(t('toast.openFailed', { error: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -69,9 +72,10 @@ export class DocumentController {
       this.host.setText(content)
       this.meta.path = path
       this.meta.dirty = false
+      addRecent(path)
       this.emit()
     } catch (err) {
-      this.host.notify(`Could not open file: ${err instanceof Error ? err.message : String(err)}`)
+      this.host.notify(t('toast.openFailed', { error: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -83,7 +87,7 @@ export class DocumentController {
       this.meta.tree = folder.tree
       this.emit()
     } catch (err) {
-      this.host.notify(`Could not open folder: ${err instanceof Error ? err.message : String(err)}`)
+      this.host.notify(t('toast.openFolderFailed', { error: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -95,7 +99,7 @@ export class DocumentController {
       this.emit()
       return true
     } catch (err) {
-      this.host.notify(`Could not save: ${err instanceof Error ? err.message : String(err)}`)
+      this.host.notify(t('toast.saveFailed', { error: err instanceof Error ? err.message : String(err) }))
       return false
     }
   }
@@ -107,10 +111,11 @@ export class DocumentController {
       await this.fs.writeFile(path, this.host.getText())
       this.meta.path = path
       this.meta.dirty = false
+      addRecent(path)
       this.emit()
       return true
     } catch (err) {
-      this.host.notify(`Could not save: ${err instanceof Error ? err.message : String(err)}`)
+      this.host.notify(t('toast.saveFailed', { error: err instanceof Error ? err.message : String(err) }))
       return false
     }
   }

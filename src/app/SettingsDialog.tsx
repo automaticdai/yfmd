@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BODY_FONTS, CODE_FONTS, type FontOption, fontStack } from './fonts'
+import { LOCALES, t, type Locale } from './i18n'
 import { SETTINGS_LIMITS, THEMES, type Settings } from './settings'
 
 interface Props {
@@ -74,11 +75,11 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="settings-dialog">
         <div className="settings-header">
-          <h2>Settings</h2>
+          <h2>{t('settings.title')}</h2>
           <button className="settings-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <label className="settings-row">
-          <span>Theme</span>
+          <span>{t('settings.theme')}</span>
           <select
             data-setting="theme"
             value={settings.theme}
@@ -87,24 +88,34 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
             {THEMES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </label>
-        <FontRow label="Editor font" setting="bodyFont" fonts={BODY_FONTS}
+        <label className="settings-row">
+          <span>{t('settings.language')}</span>
+          <select
+            data-setting="language"
+            value={settings.language}
+            onChange={e => set('language', e.target.value as Locale)}
+          >
+            {LOCALES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+          </select>
+        </label>
+        <FontRow label={t('settings.editorFont')} setting="bodyFont" fonts={BODY_FONTS}
           value={settings.bodyFont} onPick={id => set('bodyFont', id)} />
-        <FontRow label="Code font" setting="codeFont" fonts={CODE_FONTS}
+        <FontRow label={t('settings.codeFont')} setting="codeFont" fonts={CODE_FONTS}
           value={settings.codeFont} onPick={id => set('codeFont', id)} />
-        <SliderRow label="Max text width" setting="maxWidth" value={settings.maxWidth} unit="rem"
+        <SliderRow label={t('settings.maxWidth')} setting="maxWidth" value={settings.maxWidth} unit="rem"
           min={L.maxWidth.min} max={L.maxWidth.max} step={L.maxWidth.step}
           onInput={v => set('maxWidth', v)} />
-        <SliderRow label="Side margins" setting="sideMargin" value={settings.sideMargin} unit="rem"
+        <SliderRow label={t('settings.sideMargin')} setting="sideMargin" value={settings.sideMargin} unit="rem"
           min={L.sideMargin.min} max={L.sideMargin.max} step={L.sideMargin.step}
           onInput={v => set('sideMargin', v)} />
-        <SliderRow label="Font size" setting="fontSize" value={settings.fontSize} unit="px"
+        <SliderRow label={t('settings.fontSize')} setting="fontSize" value={settings.fontSize} unit="px"
           min={L.fontSize.min} max={L.fontSize.max} step={L.fontSize.step}
           onInput={v => set('fontSize', v)} />
-        <SliderRow label="Line height" setting="lineHeight" value={settings.lineHeight} unit=""
+        <SliderRow label={t('settings.lineHeight')} setting="lineHeight" value={settings.lineHeight} unit=""
           min={L.lineHeight.min} max={L.lineHeight.max} step={L.lineHeight.step}
           onInput={v => set('lineHeight', v)} />
         <label className="settings-row">
-          <span>Autosave</span>
+          <span>{t('settings.autosave')}</span>
           <input
             type="checkbox"
             data-setting="autosave"
@@ -113,7 +124,7 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
           />
         </label>
         <div className="settings-row">
-          <span>Sidebar opens on</span>
+          <span>{t('settings.sidebarOpensOn')}</span>
           <span className="settings-control">
             {(['files', 'outline'] as const).map(tab => (
               <label key={tab} className="settings-radio">
@@ -124,7 +135,7 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
                   checked={settings.sidebarTab === tab}
                   onChange={() => set('sidebarTab', tab)}
                 />
-                {tab === 'files' ? 'Files' : 'Outline'}
+                {tab === 'files' ? t('sidebar.files') : t('sidebar.outline')}
               </label>
             ))}
           </span>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { type FileEntry, isMarkdownFile } from '../services/file-service'
+import { t } from '../app/i18n'
 
 interface Props { tree: FileEntry[]; onOpenFile(path: string): void }
 
@@ -34,7 +35,7 @@ function Node({ entry, onOpenFile }: { entry: FileEntry; onOpenFile(path: string
 }
 
 export function FileTreePane({ tree, onOpenFile }: Props) {
-  if (tree.length === 0) return <p className="sidebar-empty">Open a folder to browse files.</p>
+  if (tree.length === 0) return <p className="sidebar-empty">{t('sidebar.openFolder')}</p>
   return (
     <div className="file-tree">
       {tree.map(entry => <Node key={entry.path} entry={entry} onOpenFile={onOpenFile} />)}

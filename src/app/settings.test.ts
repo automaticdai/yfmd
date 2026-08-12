@@ -44,6 +44,13 @@ describe('loadSettings', () => {
     expect(s.lineHeight).toBe(2.2)
     expect(s.sidebarTab).toBe('files')
   })
+  it('defaults language to en and rejects unknown values', () => {
+    expect(DEFAULT_SETTINGS.language).toBe('en')
+    storage.setItem('yfmd-settings', JSON.stringify({ language: 'fr' }))
+    expect(loadSettings().language).toBe('en')
+    storage.setItem('yfmd-settings', JSON.stringify({ language: 'zh-CN' }))
+    expect(loadSettings().language).toBe('zh-CN')
+  })
   it('defaults both fonts to the sentinels that defer to the stylesheet', () => {
     expect(DEFAULT_SETTINGS.bodyFont).toBe('theme')
     expect(DEFAULT_SETTINGS.codeFont).toBe('default')

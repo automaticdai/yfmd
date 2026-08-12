@@ -5,6 +5,8 @@ import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
+import { setLocale, t } from './app/i18n'
+import { clearRecent, loadRecent } from './app/recent-files'
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
 import {
@@ -35,6 +37,8 @@ export default function App() {
   const [sourceMode, setSourceMode] = useState(false)
   const sourceModeRef = useRef(false)
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
+  // Sync the module-level locale before children render so t() reflects settings.
+  setLocale(settings.language)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -42,6 +46,7 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
   const [outline, setOutline] = useState<OutlineItem[]>([])
+  const [recent, setRecent] = useState<string[]>(() => loadRecent())
   const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -145,6 +150,7 @@ export default function App() {
         notify,
         onMetaChange: m => {
           setMeta({ ...m })
+          setRecent(loadRecent())
           const p = m.path
           view.dispatch({
             effects: [
@@ -190,7 +196,7 @@ export default function App() {
       await getCurrentWindow().destroy()
     } else {
       window.close()
-      notify('Close the browser tab to quit')
+      notify(t('toast.closeTab'))
     }
   }, [notify])
 
@@ -257,6 +263,15 @@ export default function App() {
       if (view) { headingCommand(level)(view); view.focus() }
       return
     }
+    if (action.startsWith('open-recent://')) {
+      void c?.openPath(action.slice('open-recent://'.length))
+      return
+    }
+    if (action === 'clear-recent') {
+      clearRecent()
+      setRecent([])
+      return
+    }
     switch (action) {
       case 'new': void c?.newFile(); break
       case 'open-file': void c?.openFileViaDialog(); break
@@ -273,8 +288,8 @@ export default function App() {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
           void exportHtml(fs, view.state.doc.toString(), title)
-            .then(saved => { if (saved) notify(`Exported to ${saved}`) })
-            .catch(err => notify(`Export failed: ${err instanceof Error ? err.message : String(err)}`))
+            .then(saved => { if (saved) notify(t('toast.exported', { path: saved })) })
+            .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break
       }
@@ -283,7 +298,7 @@ export default function App() {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
           void exportPdf(view.state.doc.toString(), title)
-            .catch(err => notify(`Export failed: ${err instanceof Error ? err.message : String(err)}`))
+            .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break
       }
@@ -311,7 +326,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <MenuBar onAction={onAction} checkedActions={new Set([`theme:${settings.theme}`])} />
+      <MenuBar onAction={onAction} checkedActions={new Set([`theme:${settings.theme}`])} recent={recent} />
       <div className="app-body">
         {sidebarVisible && (
           <Sidebar

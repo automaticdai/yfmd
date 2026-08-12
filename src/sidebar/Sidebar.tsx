@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FileEntry } from '../services/file-service'
 import type { OutlineItem } from '../outline/outline'
+import { t } from '../app/i18n'
 import { FileTreePane } from './FileTreePane'
 import { OutlinePane } from './OutlinePane'
 
@@ -22,12 +23,12 @@ export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onJ
           className={'sidebar-tab' + (tab === 'files' ? ' active' : '')}
           data-tab="files"
           onClick={() => setTab('files')}
-        >Files</button>
+        >{t('sidebar.files')}</button>
         <button
           className={'sidebar-tab' + (tab === 'outline' ? ' active' : '')}
           data-tab="outline"
           onClick={() => setTab('outline')}
-        >Outline</button>
+        >{t('sidebar.outline')}</button>
       </div>
       <div className="sidebar-content">
         {tab === 'files' ? (
