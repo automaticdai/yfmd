@@ -10,6 +10,7 @@ import { headingCommand } from './block-commands'
 import { insertLink, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough } from './commands'
 import { mdHighlightStyle } from './highlight'
 import { imagePasteHandler } from './image-insert'
+import { inlineTagsExtension } from './inline-tags'
 import { continueList } from './list-continue'
 import { livePreviewExtensions } from './live-preview'
 import { tableTab } from './table-edit'
@@ -53,6 +54,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
     EditorView.inputHandler.of(autoPairHandler),
     EditorView.domEventHandlers({ paste: imagePasteHandler }),
+    inlineTagsExtension,
     livePreviewCompartment.of(livePreviewExtensions({ openExternal: opts.openExternal })),
     resolverCompartment.of([]),
     imageSaverCompartment.of([]),
