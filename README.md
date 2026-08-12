@@ -38,6 +38,7 @@ npm install
 npm run dev          # browser mode (in-memory file system) at http://localhost:5173
 npm run tauri dev    # desktop app (requires Rust toolchain, see below)
 npm test             # unit tests (Vitest)
+npm run test:coverage # unit tests + coverage report and thresholds
 npm run e2e          # end-to-end tests (Playwright, browser mode)
 npm run typecheck    # TypeScript strict check
 npm run build        # typecheck + production bundle
@@ -64,6 +65,13 @@ sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev
   inside Tauri.
 - **Export**: a separate markdown-it pipeline with KaTeX (`output: 'mathml'`) and
   mermaid-to-SVG post-processing produces fully offline HTML.
+
+## CI & releases
+
+GitHub Actions builds the desktop app on Linux, macOS and Windows on every push
+to `main` and every PR. Pushing a `v*` tag (with `src-tauri/tauri.conf.json`'s
+`version` bumped to match) publishes a draft GitHub release with installers for
+all three platforms via the `release` workflow.
 
 ## License
 
