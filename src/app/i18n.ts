@@ -58,6 +58,9 @@ const en = {
   'status.untitled': 'untitled',
   'status.unsaved': 'unsaved changes',
   'status.source': 'SOURCE',
+  'status.words': '{n} words',
+  'status.chars': '{n} chars',
+  'status.readingTime': '≈ {n} min read',
 
   'confirm.title': 'Save changes to {name}?',
   'confirm.save': 'Save',
@@ -154,6 +157,9 @@ const zhCN: Record<MessageKey, string> = {
   'status.untitled': '未命名',
   'status.unsaved': '未保存的更改',
   'status.source': '源码',
+  'status.words': '{n} 词',
+  'status.chars': '{n} 字',
+  'status.readingTime': '约 {n} 分钟',
 
   'confirm.title': '保存对 {name} 的更改？',
   'confirm.save': '保存',

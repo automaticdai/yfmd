@@ -89,6 +89,8 @@ body {
 }
 .dirty-dot { color: var(--accent); }
 .source-badge { letter-spacing: 1px; color: var(--accent); }
+.status-right { display: flex; align-items: center; gap: 12px; }
+.status-stats { font-variant-numeric: tabular-nums; }
 
 .sidebar {
   width: 240px; display: flex; flex-direction: column;

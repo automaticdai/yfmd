@@ -8,6 +8,7 @@ import { ConfirmDialog } from './app/ConfirmDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
 import { makeImageSaver } from './app/image-saver'
+import { countDocStats, type DocStats } from './app/word-count'
 import { clearRecent, loadRecent } from './app/recent-files'
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
@@ -53,6 +54,7 @@ export default function App() {
   const [sidebarVisible, setSidebarVisible] = useState(false)
   const [outline, setOutline] = useState<OutlineItem[]>([])
   const [recent, setRecent] = useState<string[]>(() => loadRecent())
+  const [stats, setStats] = useState<DocStats>(() => countDocStats(''))
   const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -68,7 +70,10 @@ export default function App() {
   const scheduleOutline = useCallback(() => {
     if (outlineTimer.current) clearTimeout(outlineTimer.current)
     outlineTimer.current = setTimeout(() => {
-      if (viewRef.current) setOutline(extractOutline(viewRef.current.state))
+      if (viewRef.current) {
+        setOutline(extractOutline(viewRef.current.state))
+        setStats(countDocStats(viewRef.current.state.doc.toString()))
+      }
     }, 200)
   }, [])
 
@@ -380,7 +385,7 @@ export default function App() {
         )}
         <main className="editor-pane"><div ref={hostRef} style={{ height: '100%' }} /></main>
       </div>
-      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} />
+      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} stats={stats} />
       {confirmOpen && (
         <ConfirmDialog
           fileName={fileName}
