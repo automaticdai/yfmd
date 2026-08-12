@@ -48,6 +48,8 @@ const en = {
 
   'view.toggleSidebar': 'Toggle Sidebar',
   'view.sourceMode': 'Source Mode',
+  'view.focusMode': 'Focus Mode',
+  'view.typewriterMode': 'Typewriter Mode',
 
   'help.about': 'About yfmd',
   'about.version': 'Version',
@@ -147,6 +149,8 @@ const zhCN: Record<MessageKey, string> = {
 
   'view.toggleSidebar': '切换侧边栏',
   'view.sourceMode': '源码模式',
+  'view.focusMode': '专注模式',
+  'view.typewriterMode': '打字机模式',
 
   'help.about': '关于 yfmd',
   'about.version': '版本',

@@ -24,6 +24,7 @@ export const livePreviewCompartment = new Compartment()
 export const resolverCompartment = new Compartment()
 export const imageSaverCompartment = new Compartment()
 export const themeCompartment = new Compartment()
+export const writingModeCompartment = new Compartment()
 
 export function createExtensions(opts: EditorOptions): Extension[] {
   return [
@@ -55,6 +56,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     resolverCompartment.of([]),
     imageSaverCompartment.of([]),
     themeCompartment.of([]),
+    writingModeCompartment.of([]),
     EditorView.updateListener.of(u => {
       if (u.docChanged) opts.onDocChanged()
     }),

@@ -91,6 +91,8 @@ body {
 .source-badge { letter-spacing: 1px; color: var(--accent); }
 .status-right { display: flex; align-items: center; gap: 12px; }
 .status-stats { font-variant-numeric: tabular-nums; }
+.cm-focus-mode .cm-line { opacity: 0.35; transition: opacity 0.12s; }
+.cm-focus-mode .cm-line.cm-activeLine { opacity: 1; }
 
 .sidebar {
   width: 240px; display: flex; flex-direction: column;

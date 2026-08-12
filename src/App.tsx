@@ -23,7 +23,8 @@ import {
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, imageSaverCompartment, resolverCompartment, themeCompartment } from './editor/setup'
+import { createExtensions, imageSaverCompartment, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { writingModeExtensions } from './editor/writing-mode'
 import { extractOutline, type OutlineItem } from './outline/outline'
 import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
 import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } from './app/settings'
@@ -49,6 +50,8 @@ export default function App() {
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
+  const [typewriterMode, setTypewriterMode] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
@@ -206,6 +209,13 @@ export default function App() {
     applyEditorTheme()
   }, [settings, applyEditorTheme])
 
+  // focus / typewriter mode are editor-only toggles, not persisted settings
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: writingModeCompartment.reconfigure(writingModeExtensions(focusMode, typewriterMode)),
+    })
+  }, [focusMode, typewriterMode])
+
   /** Dirty-guard then leave: destroys the Tauri window or closes the browser tab. */
   const quitApp = useCallback(async () => {
     const c = controllerRef.current
@@ -352,6 +362,8 @@ export default function App() {
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
       case 'about': setAboutOpen(true); break
+      case 'focus-mode': setFocusMode(v => !v); break
+      case 'typewriter-mode': setTypewriterMode(v => !v); break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
@@ -359,10 +371,13 @@ export default function App() {
   }, [notify, quitApp, toggleSource])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
+  const checkedActions = new Set<string>([`theme:${settings.theme}`])
+  if (focusMode) checkedActions.add('focus-mode')
+  if (typewriterMode) checkedActions.add('typewriter-mode')
 
   return (
     <div className="app">
-      <MenuBar onAction={onAction} checkedActions={new Set([`theme:${settings.theme}`])} recent={recent} />
+      <MenuBar onAction={onAction} checkedActions={checkedActions} recent={recent} />
       <div className="app-body">
         {sidebarVisible && (
           <Sidebar
