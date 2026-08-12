@@ -8,6 +8,8 @@ import { ConfirmDialog } from './app/ConfirmDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
 import { makeImageSaver } from './app/image-saver'
+import { loadCustomTheme, saveCustomTheme } from './app/custom-theme'
+import { extractPalette } from './app/theme-import'
 import { countDocStats, type DocStats } from './app/word-count'
 import { clearRecent, loadRecent } from './app/recent-files'
 import { MenuBar } from './app/MenuBar'
@@ -55,6 +57,7 @@ export default function App() {
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
   const [lineNumbers, setLineNumbers] = useState(false)
+  const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
@@ -225,6 +228,17 @@ export default function App() {
     })
   }, [lineNumbers])
 
+  // apply (or clear) the imported theme's palette on the document root
+  useEffect(() => {
+    const root = document.documentElement
+    const tokens = ['--bg', '--fg', '--fg-muted', '--accent', '--border', '--sidebar-bg', '--code-bg', '--code-font-default']
+    for (const k of tokens) root.style.removeProperty(k)
+    if (customThemeCss) {
+      const palette = extractPalette(customThemeCss)
+      for (const [k, v] of Object.entries(palette)) root.style.setProperty(k, v)
+    }
+  }, [customThemeCss])
+
   /** Dirty-guard then leave: destroys the Tauri window or closes the browser tab. */
   const quitApp = useCallback(async () => {
     const c = controllerRef.current
@@ -325,7 +339,7 @@ export default function App() {
         if (view && fs) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportHtml(fs, view.state.doc.toString(), title)
+          void exportHtml(fs, view.state.doc.toString(), title, customThemeCss)
             .then(saved => { if (saved) notify(t('toast.exported', { path: saved })) })
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
@@ -335,7 +349,7 @@ export default function App() {
         if (view) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportPdf(view.state.doc.toString(), title)
+          void exportPdf(view.state.doc.toString(), title, customThemeCss)
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break
@@ -375,11 +389,28 @@ export default function App() {
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
       case 'line-numbers': setLineNumbers(v => !v); break
+      case 'load-theme-css': {
+        const fs = fsRef.current
+        if (fs) {
+          void fs.openCssDialog().then(css => {
+            if (css) {
+              saveCustomTheme(css)
+              setCustomThemeCss(css)
+              notify(t('theme.loaded'))
+            }
+          })
+        }
+        break
+      }
+      case 'reset-theme':
+        saveCustomTheme('')
+        setCustomThemeCss('')
+        break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
     }
-  }, [notify, quitApp, toggleSource])
+  }, [notify, quitApp, toggleSource, customThemeCss])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])

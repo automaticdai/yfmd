@@ -86,7 +86,12 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     },
     {
       title: t('menu.theme'),
-      items: THEMES.map(theme => ({ action: `theme:${theme.id}`, label: theme.label })),
+      items: [
+        ...THEMES.map(theme => ({ action: `theme:${theme.id}`, label: theme.label })),
+        { separator: true },
+        { action: 'load-theme-css', label: t('theme.loadCss') },
+        { action: 'reset-theme', label: t('theme.reset') },
+      ],
     },
     {
       title: t('menu.help'),

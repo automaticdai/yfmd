@@ -11,6 +11,9 @@ const en = {
   'menu.view': 'View',
   'menu.theme': 'Theme',
   'menu.help': 'Help',
+  'theme.loadCss': 'Load Theme CSS…',
+  'theme.reset': 'Reset Theme',
+  'theme.loaded': 'Theme loaded',
 
   'file.new': 'New',
   'file.openFile': 'Open File…',
@@ -115,6 +118,9 @@ const zhCN: Record<MessageKey, string> = {
   'menu.view': '视图',
   'menu.theme': '主题',
   'menu.help': '帮助',
+  'theme.loadCss': '加载主题 CSS…',
+  'theme.reset': '重置主题',
+  'theme.loaded': '主题已加载',
 
   'file.new': '新建',
   'file.openFile': '打开文件…',

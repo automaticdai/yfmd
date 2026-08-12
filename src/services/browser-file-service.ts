@@ -98,6 +98,12 @@ export class BrowserFileService implements FileService {
     return { path, data: new Uint8Array() }
   }
 
+  async openCssDialog(): Promise<string | null> {
+    const path = this.nextAnswer(null)
+    if (path === null) return null
+    return this.readFile(path)
+  }
+
   async saveFileDialog(defaultName: string): Promise<string | null> {
     return this.nextAnswer(`/untitled-${++this.untitledCounter}-${defaultName}`)
   }

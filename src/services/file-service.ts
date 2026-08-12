@@ -21,6 +21,7 @@ export interface FileService {
   listFolder(path: string): Promise<FileEntry[]>
   defaultDir(): Promise<string>
   openImageDialog(): Promise<OpenedImage | null>
+  openCssDialog(): Promise<string | null>
   saveFileDialog(defaultName: string): Promise<string | null>
   resolveResource(docPath: string | null, src: string): string
   openExternal(url: string): Promise<void>

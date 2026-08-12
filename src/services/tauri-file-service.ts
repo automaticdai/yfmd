@@ -18,6 +18,7 @@ import {
 
 const MD_FILTERS = [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }]
 const IMAGE_FILTERS = [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }]
+const CSS_FILTERS = [{ name: 'CSS', extensions: ['css'] }]
 
 export class TauriFileService implements FileService {
   async openFileDialog(): Promise<OpenedFile | null> {
@@ -68,6 +69,12 @@ export class TauriFileService implements FileService {
     const path = await open({ multiple: false, directory: false, filters: IMAGE_FILTERS })
     if (typeof path !== 'string') return null
     return { path, data: await fsReadFile(path) }
+  }
+
+  async openCssDialog(): Promise<string | null> {
+    const path = await open({ multiple: false, directory: false, filters: CSS_FILTERS })
+    if (typeof path !== 'string') return null
+    return readTextFile(path)
   }
 
   async saveFileDialog(defaultName: string): Promise<string | null> {

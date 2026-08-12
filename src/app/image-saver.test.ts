@@ -15,6 +15,7 @@ function mockFs(overrides: Partial<FileService> = {}): FileService {
     listFolder: async () => [],
     defaultDir: async () => '/docs',
     openImageDialog: async () => null,
+    openCssDialog: async () => null,
     saveFileDialog: async () => null,
     resolveResource: (_d, s) => s,
     openExternal: async () => {},

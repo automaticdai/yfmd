@@ -188,8 +188,10 @@ const EXPORT_CSS = `
   }
 `
 
-export async function renderExportHtml(markdown: string, title: string): Promise<string> {
+export async function renderExportHtml(markdown: string, title: string, customCss = ''): Promise<string> {
   const body = await renderMermaidBlocks(renderBodyHtml(markdown))
+  const content = customCss ? `<div id="write">\n${body}\n</div>` : body
+  const customStyle = customCss ? `<style>${customCss}</style>\n` : ''
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -198,9 +200,9 @@ export async function renderExportHtml(markdown: string, title: string): Promise
 <title>${renderer.utils.escapeHtml(title)}</title>
 <style>${hljsCss}</style>
 <style>${EXPORT_CSS}</style>
-</head>
+${customStyle}</head>
 <body>
-${body}
+${content}
 </body>
 </html>
 `
