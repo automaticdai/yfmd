@@ -6,6 +6,7 @@ import welcome from './assets/welcome.md?raw'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
+import { makeImageSaver } from './app/image-saver'
 import { clearRecent, loadRecent } from './app/recent-files'
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
@@ -13,12 +14,13 @@ import {
   headingCommand, insertCodeBlock, insertHorizontalRule, insertMathBlock, insertTable,
   listCommand, toggleQuote,
 } from './editor/block-commands'
+import { insertImage } from './editor/image-insert'
 import {
   insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
-import { imageResolver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, resolverCompartment, themeCompartment } from './editor/setup'
+import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
+import { createExtensions, imageSaverCompartment, resolverCompartment, themeCompartment } from './editor/setup'
 import { extractOutline, type OutlineItem } from './outline/outline'
 import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
 import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } from './app/settings'
@@ -32,6 +34,7 @@ export default function App() {
   const fsRef = useRef<FileService | null>(null)
   const controllerRef = useRef<DocumentController | null>(null)
   const confirmResolve = useRef<((r: ConfirmResult) => void) | null>(null)
+  const saverRef = useRef<ReturnType<typeof makeImageSaver>>(async () => null)
 
   const [meta, setMeta] = useState<DocMeta>({ path: null, dirty: false, folderPath: null, tree: null })
   const [sourceMode, setSourceMode] = useState(false)
@@ -152,15 +155,23 @@ export default function App() {
           setMeta({ ...m })
           setRecent(loadRecent())
           const p = m.path
-          view.dispatch({
-            effects: [
-              resolverCompartment.reconfigure(
-                imageResolver.of(src => (fsRef.current ? fsRef.current.resolveResource(p, src) : src))),
-              rebuildWidgets.of(null),
-            ],
-          })
+          const fs = fsRef.current
+          if (fs) {
+            const saver = makeImageSaver(fs, p)
+            saverRef.current = saver
+            view.dispatch({
+              effects: [
+                resolverCompartment.reconfigure(imageResolver.of(src => fs.resolveResource(p, src))),
+                imageSaverCompartment.reconfigure(imageSaver.of(saver)),
+                rebuildWidgets.of(null),
+              ],
+            })
+          }
         },
       })
+      const saver = makeImageSaver(fs, null)
+      saverRef.current = saver
+      view.dispatch({ effects: [imageSaverCompartment.reconfigure(imageSaver.of(saver))] })
       controllerRef.current = controller
     })
 
@@ -307,6 +318,18 @@ export default function App() {
       case 'strike': if (view) { toggleStrikethrough(view); view.focus() } break
       case 'code': if (view) { toggleInlineCode(view); view.focus() } break
       case 'link': if (view) { insertLink(view); view.focus() } break
+      case 'insert-image': {
+        const fs = fsRef.current
+        if (view && fs) {
+          void fs.openImageDialog().then(async picked => {
+            if (!picked) return
+            const ext = picked.path.match(/\.(\w+)$/)?.[1] ?? 'png'
+            const src = await saverRef.current(picked.data, ext)
+            if (src) insertImage(view, picked.path.slice(picked.path.lastIndexOf('/') + 1), src)
+          })
+        }
+        break
+      }
       case 'quote': if (view) { toggleQuote(view); view.focus() } break
       case 'list-unordered': if (view) { listCommand('unordered')(view); view.focus() } break
       case 'list-ordered': if (view) { listCommand('ordered')(view); view.focus() } break

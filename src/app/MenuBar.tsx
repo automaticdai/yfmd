@@ -44,6 +44,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'strike', label: t('edit.strikethrough'), shortcut: 'Ctrl+Shift+X' },
         { action: 'code', label: t('edit.inlineCode'), shortcut: 'Ctrl+`' },
         { action: 'link', label: t('edit.insertLink'), shortcut: 'Ctrl+K' },
+        { action: 'insert-image', label: t('edit.insertImage') },
         { separator: true },
         { action: 'heading:1', label: t('edit.heading1'), shortcut: 'Ctrl+1' },
         { action: 'heading:2', label: t('edit.heading2'), shortcut: 'Ctrl+2' },

@@ -9,6 +9,7 @@ import { autoPairHandler } from './auto-pair'
 import { headingCommand } from './block-commands'
 import { insertLink, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough } from './commands'
 import { mdHighlightStyle } from './highlight'
+import { imagePasteHandler } from './image-insert'
 import { continueList } from './list-continue'
 import { livePreviewExtensions } from './live-preview'
 
@@ -20,6 +21,7 @@ export interface EditorOptions {
 
 export const livePreviewCompartment = new Compartment()
 export const resolverCompartment = new Compartment()
+export const imageSaverCompartment = new Compartment()
 export const themeCompartment = new Compartment()
 
 export function createExtensions(opts: EditorOptions): Extension[] {
@@ -45,8 +47,10 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     ])),
     keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
     EditorView.inputHandler.of(autoPairHandler),
+    EditorView.domEventHandlers({ paste: imagePasteHandler }),
     livePreviewCompartment.of(livePreviewExtensions({ openExternal: opts.openExternal })),
     resolverCompartment.of([]),
+    imageSaverCompartment.of([]),
     themeCompartment.of([]),
     EditorView.updateListener.of(u => {
       if (u.docChanged) opts.onDocChanged()

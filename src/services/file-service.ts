@@ -7,12 +7,20 @@ export interface FileEntry {
 
 export interface OpenedFile { path: string; content: string }
 export interface OpenedFolder { path: string; tree: FileEntry[] }
+export interface OpenedImage { path: string; data: Uint8Array }
 
 export interface FileService {
   openFileDialog(): Promise<OpenedFile | null>
   openFolderDialog(): Promise<OpenedFolder | null>
   readFile(path: string): Promise<string>
   writeFile(path: string, content: string): Promise<void>
+  writeBinary(path: string, data: Uint8Array): Promise<void>
+  mkdir(path: string): Promise<void>
+  rename(oldPath: string, newPath: string): Promise<void>
+  remove(path: string): Promise<void>
+  listFolder(path: string): Promise<FileEntry[]>
+  defaultDir(): Promise<string>
+  openImageDialog(): Promise<OpenedImage | null>
   saveFileDialog(defaultName: string): Promise<string | null>
   resolveResource(docPath: string | null, src: string): string
   openExternal(url: string): Promise<void>

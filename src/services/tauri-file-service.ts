@@ -1,14 +1,23 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { documentDir, join } from '@tauri-apps/api/path'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
+import {
+  mkdir as fsMkdir,
+  readFile as fsReadFile,
+  readTextFile,
+  remove as fsRemove,
+  rename as fsRename,
+  writeFile,
+  writeTextFile,
+} from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import {
   dirname, type FileEntry, type FileService, normalizePath,
-  type OpenedFile, type OpenedFolder,
+  type OpenedFile, type OpenedFolder, type OpenedImage,
 } from './file-service'
 
 const MD_FILTERS = [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }]
+const IMAGE_FILTERS = [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }]
 
 export class TauriFileService implements FileService {
   async openFileDialog(): Promise<OpenedFile | null> {
@@ -29,6 +38,36 @@ export class TauriFileService implements FileService {
 
   async writeFile(path: string, content: string): Promise<void> {
     await writeTextFile(path, content)
+  }
+
+  async writeBinary(path: string, data: Uint8Array): Promise<void> {
+    await writeFile(path, data)
+  }
+
+  async mkdir(path: string): Promise<void> {
+    await fsMkdir(path, { recursive: true })
+  }
+
+  async rename(oldPath: string, newPath: string): Promise<void> {
+    await fsRename(oldPath, newPath)
+  }
+
+  async remove(path: string): Promise<void> {
+    await fsRemove(path, { recursive: true })
+  }
+
+  async listFolder(path: string): Promise<FileEntry[]> {
+    return invoke<FileEntry[]>('list_dir', { path })
+  }
+
+  async defaultDir(): Promise<string> {
+    return documentDir()
+  }
+
+  async openImageDialog(): Promise<OpenedImage | null> {
+    const path = await open({ multiple: false, directory: false, filters: IMAGE_FILTERS })
+    if (typeof path !== 'string') return null
+    return { path, data: await fsReadFile(path) }
   }
 
   async saveFileDialog(defaultName: string): Promise<string | null> {
