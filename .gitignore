@@ -3,4 +3,5 @@ dist/
 src-tauri/target/
 test-results/
 playwright-report/
+coverage/
 src-tauri/untitled*.md
