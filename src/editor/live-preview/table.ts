@@ -40,11 +40,12 @@ export function parseTable(src: string): ParsedTable | null {
   return { align, header: splitRow(lines[0]), rows: lines.slice(2).map(splitRow) }
 }
 
-export function formatParsedTable(parsed: ParsedTable): string {
+export function formatParsedTable(parsed: ParsedTable, explicitWidths?: number[]): string {
   const { align, header, rows } = parsed
   const ncol = Math.max(header.length, align.length, ...rows.map(r => r.length), 1)
-  const widths = Array.from({ length: ncol }, (_, i) =>
-    Math.max(3, (header[i] ?? '').length, ...rows.map(r => (r[i] ?? '').length)))
+  const widths = (explicitWidths ?? Array.from({ length: ncol }, (_, i) =>
+    Math.max(3, (header[i] ?? '').length, ...rows.map(r => (r[i] ?? '').length))))
+    .map(w => Math.max(1, Math.round(w)))
   const pad = (text: string, i: number) => {
     const extra = widths[i] - text.length
     if (align[i] === 'right') return ' '.repeat(extra) + text
@@ -79,6 +80,37 @@ export function formatTable(src: string): string {
 
 const inlineMd = new MarkdownIt({ html: false, linkify: false })
 
+function currentWidths(parsed: ParsedTable): number[] {
+  return parsed.header.map((h, i) => Math.max(3, h.length, ...parsed.rows.map(r => (r[i] ?? '').length)))
+}
+
+function startResize(e: MouseEvent, col: number, view: EditorView, tableEl: HTMLTableElement): void {
+  e.preventDefault()
+  e.stopPropagation()
+  const startX = e.clientX
+  const table = findTableAt(view.state, view.posAtDOM(tableEl))
+  if (!table) return
+  const lineFrom = view.state.doc.lineAt(table.from)
+  const lineTo = view.state.doc.lineAt(table.to)
+  const parsed = parseTable(view.state.doc.sliceString(lineFrom.from, lineTo.to))
+  if (!parsed) return
+  const widths = currentWidths(parsed)
+
+  const onMove = (_ev: MouseEvent) => { /* commit on release only */ }
+  const onUp = (ev: MouseEvent) => {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    const next = [...widths]
+    next[col] = Math.max(1, widths[col] + Math.round(ev.clientX - startX))
+    view.dispatch({
+      changes: { from: lineFrom.from, to: lineTo.to, insert: formatParsedTable(parsed, next) },
+      userEvent: 'format.table',
+    })
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
 export class TableWidget extends WidgetType {
   constructor(readonly src: string) { super() }
   eq(other: TableWidget) { return other.src === this.src }
@@ -96,6 +128,10 @@ export class TableWidget extends WidgetType {
         const th = document.createElement('th')
         th.innerHTML = inlineMd.renderInline(cell)
         if (alignStyle(i)) th.style.textAlign = alignStyle(i)!
+        const handle = document.createElement('span')
+        handle.className = 'cm-table-resize'
+        handle.addEventListener('mousedown', e => startResize(e, i, view, table))
+        th.appendChild(handle)
         hr.appendChild(th)
       })
       const tbody = table.createTBody()
@@ -122,10 +158,13 @@ export class TableWidget extends WidgetType {
 }
 
 export function findTableAt(state: EditorState, pos: number): SyntaxNode | null {
-  for (let n: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1); n; n = n.parent) {
-    if (n.name === 'Table') return n
+  const find = (p: number) => {
+    for (let n: SyntaxNode | null = syntaxTree(state).resolveInner(p, 1); n; n = n.parent) {
+      if (n.name === 'Table') return n
+    }
+    return null
   }
-  return null
+  return find(pos) ?? (pos > 0 ? find(pos - 1) : null)
 }
 
 /**

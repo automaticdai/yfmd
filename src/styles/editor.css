@@ -85,6 +85,11 @@
 
 /* tables (source view while editing) */
 .cm-table-line { font-family: var(--code-font, var(--code-font-default)); font-size: 0.9em; }
+.cm-table-widget th { position: relative; }
+.cm-table-resize {
+  position: absolute; top: 0; right: -4px; width: 8px; height: 100%;
+  cursor: col-resize; user-select: none;
+}
 .cm-code-lineno {
   display: inline-block; min-width: 2em; text-align: right; margin-right: 1em;
   color: var(--fg-muted); user-select: none; font-size: 0.9em;

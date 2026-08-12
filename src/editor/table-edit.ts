@@ -98,6 +98,22 @@ export function tableTab(view: EditorView, dir: 1 | -1): boolean {
   return true
 }
 
+/** Enter at the very end of the table adds a new row. */
+export function tableEnterSpec(state: EditorState): TransactionSpec | null {
+  const head = state.selection.main.head
+  const table = findTableAt(state, head)
+  if (!table) return null
+  if (head !== state.doc.lineAt(table.to).to) return null
+  return addTableRowSpec(state)
+}
+
+export function tableEnter(view: EditorView): boolean {
+  const spec = tableEnterSpec(view.state)
+  if (!spec) return false
+  view.dispatch(view.state.update(spec))
+  return true
+}
+
 export function addTableRowSpec(state: EditorState): TransactionSpec | null {
   const head = state.selection.main.head
   const found = tableAt(state, head)

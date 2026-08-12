@@ -2,7 +2,7 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { EditorSelection, EditorState } from '@codemirror/state'
 import { describe, expect, it } from 'vitest'
 import {
-  addTableColSpec, addTableRowSpec, removeTableColSpec, removeTableRowSpec, tableNavSpec,
+  addTableColSpec, addTableRowSpec, removeTableColSpec, removeTableRowSpec, tableEnterSpec, tableNavSpec,
 } from './table-edit'
 
 const EXT = [markdown({ base: markdownLanguage })]
@@ -43,5 +43,9 @@ describe('add/remove rows and columns', () => {
   it('removes a column', () => {
     const next = state(T, 2).update(removeTableColSpec(state(T, 2))!).state
     expect(next.doc.toString()).toBe('| b   |\n| --- |\n| d   |')
+  })
+  it('adds a row on Enter at the end of the last row', () => {
+    const next = state(T, T.length).update(tableEnterSpec(state(T, T.length))!).state
+    expect(next.doc.toString()).toBe('| a   | b   |\n| --- | --- |\n| c   | d   |\n|     |     |')
   })
 })

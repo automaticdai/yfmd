@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatTable, parseTable, splitRow } from './table'
+import { formatParsedTable, formatTable, parseTable, splitRow } from './table'
 
 describe('splitRow', () => {
   it('strips outer pipes and trims cells', () => {
@@ -38,5 +38,9 @@ describe('formatTable', () => {
   })
   it('returns invalid input unchanged', () => {
     expect(formatTable('nope')).toBe('nope')
+  })
+  it('formats with explicit column widths', () => {
+    const parsed = parseTable('| a | b |\n| - | - |\n| c | d |')!
+    expect(formatParsedTable(parsed, [5, 3])).toBe('| a     | b   |\n| ----- | --- |\n| c     | d   |')
   })
 })

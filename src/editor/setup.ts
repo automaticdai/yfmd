@@ -13,7 +13,7 @@ import { imageDragOverHandler, imageDropHandler, imagePasteHandler } from './ima
 import { inlineTagsExtension } from './inline-tags'
 import { continueList } from './list-continue'
 import { livePreviewExtensions } from './live-preview'
-import { tableTab } from './table-edit'
+import { tableEnter, tableTab } from './table-edit'
 
 export interface EditorOptions {
   onDocChanged(): void
@@ -37,7 +37,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     syntaxHighlighting(mdHighlightStyle),
     search({ top: true }),
     Prec.high(keymap.of([
-      { key: 'Enter', run: continueList },
+      { key: 'Enter', run: view => continueList(view) || tableEnter(view) },
       { key: 'Tab', run: view => tableTab(view, 1) },
       { key: 'Shift-Tab', run: view => tableTab(view, -1) },
       { key: 'Mod-/', run: () => (opts.onToggleSource(), true) },
