@@ -12,6 +12,7 @@ import { mdHighlightStyle } from './highlight'
 import { imageDragOverHandler, imageDropHandler, imagePasteHandler } from './image-insert'
 import { inlineTagsExtension } from './inline-tags'
 import { continueList } from './list-continue'
+import { markdownExtensionsField } from './markdown-extensions'
 import { livePreviewExtensions } from './live-preview'
 import { tableEnter, tableTab } from './table-edit'
 
@@ -55,6 +56,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     EditorView.inputHandler.of(autoPairHandler),
     EditorView.domEventHandlers({ paste: imagePasteHandler, drop: imageDropHandler, dragover: imageDragOverHandler }),
     inlineTagsExtension,
+    markdownExtensionsField,
     livePreviewCompartment.of(livePreviewExtensions({ openExternal: opts.openExternal })),
     resolverCompartment.of([]),
     imageSaverCompartment.of([]),

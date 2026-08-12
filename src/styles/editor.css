@@ -98,6 +98,10 @@
   color: var(--accent); background: var(--code-bg); border-radius: 3px;
   padding: 0 2px; font-weight: 500; cursor: pointer;
 }
+.cm-mark { background: var(--code-bg); border-radius: 2px; padding: 0 1px; }
+.cm-sup { vertical-align: super; font-size: 0.8em; }
+.cm-sub { vertical-align: sub; font-size: 0.8em; }
+.cm-emoji { font-size: 1.1em; }
 /* table widget */
 .cm-table-widget { border-collapse: collapse; margin: 0.5em 0; cursor: pointer; }
 .cm-table-widget th, .cm-table-widget td { border: 1px solid var(--border); padding: 0.35em 0.9em; }

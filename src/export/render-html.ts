@@ -7,6 +7,7 @@ import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import mermaid from 'mermaid'
 import { stripFrontmatter } from '../editor/frontmatter'
+import { EMOJI } from '../editor/markdown-extensions'
 import { slugify } from '../outline/outline'
 
 function mathInlineRule(state: StateInline, silent: boolean): boolean {
@@ -81,6 +82,74 @@ function taskListPlugin(md: MarkdownIt): void {
   })
 }
 
+function markRule(state: StateInline, silent: boolean): boolean {
+  if (!state.src.startsWith('==', state.pos)) return false
+  const end = state.src.indexOf('==', state.pos + 2)
+  if (end === -1) return false
+  if (!silent) {
+    state.push('mark_open', 'mark', 1)
+    const text = state.push('text', '', 0)
+    text.content = state.src.slice(state.pos + 2, end)
+    state.push('mark_close', 'mark', -1)
+  }
+  state.pos = end + 2
+  return true
+}
+
+function supRule(state: StateInline, silent: boolean): boolean {
+  if (state.src[state.pos] !== '^' || state.src[state.pos + 1] === '^') return false
+  const end = state.src.indexOf('^', state.pos + 1)
+  if (end === -1) return false
+  if (!silent) {
+    state.push('sup_open', 'sup', 1)
+    const text = state.push('text', '', 0)
+    text.content = state.src.slice(state.pos + 1, end)
+    state.push('sup_close', 'sup', -1)
+  }
+  state.pos = end + 1
+  return true
+}
+
+function subRule(state: StateInline, silent: boolean): boolean {
+  if (state.src[state.pos] !== '~' || state.src[state.pos + 1] === '~') return false
+  const end = state.src.indexOf('~', state.pos + 1)
+  if (end === -1) return false
+  if (!silent) {
+    state.push('sub_open', 'sub', 1)
+    const text = state.push('text', '', 0)
+    text.content = state.src.slice(state.pos + 1, end)
+    state.push('sub_close', 'sub', -1)
+  }
+  state.pos = end + 1
+  return true
+}
+
+function emojiRule(state: StateInline, silent: boolean): boolean {
+  if (state.src[state.pos] !== ':') return false
+  const m = /^:([a-zA-Z0-9_+-]+):/.exec(state.src.slice(state.pos))
+  if (!m || !EMOJI[m[1]]) return false
+  if (!silent) {
+    const text = state.push('text', '', 0)
+    text.content = EMOJI[m[1]]
+  }
+  state.pos += m[0].length
+  return true
+}
+
+function footnoteRefRule(state: StateInline, silent: boolean): boolean {
+  if (!state.src.startsWith('[^', state.pos)) return false
+  const end = state.src.indexOf(']', state.pos + 2)
+  if (end === -1) return false
+  const id = state.src.slice(state.pos + 2, end)
+  if (!/^[\w-]+$/.test(id)) return false
+  if (!silent) {
+    const t = state.push('footnote_ref', '', 0)
+    t.meta = { id }
+  }
+  state.pos = end + 1
+  return true
+}
+
 export function createExportRenderer(): MarkdownIt {
   const md: MarkdownIt = new MarkdownIt({
     html: false,
@@ -95,6 +164,11 @@ export function createExportRenderer(): MarkdownIt {
   md.use(taskListPlugin)
   md.inline.ruler.after('escape', 'math_inline', mathInlineRule)
   md.block.ruler.after('fence', 'math_block', mathBlockRule)
+  md.inline.ruler.after('backticks', 'mark', markRule)
+  md.inline.ruler.after('mark', 'sup', supRule)
+  md.inline.ruler.after('sup', 'sub', subRule)
+  md.inline.ruler.after('sub', 'emoji', emojiRule)
+  md.inline.ruler.after('emoji', 'footnote_ref', footnoteRefRule)
   const mathInline: RenderRule = (tokens, idx) =>
     katex.renderToString(tokens[idx].content, { throwOnError: false, output: 'mathml' })
   const mathBlock: RenderRule = (tokens, idx) =>
@@ -119,6 +193,16 @@ export function createExportRenderer(): MarkdownIt {
     return self.renderToken(tokens, idx, options)
   }
   md.renderer.rules.heading_open = headingOpen
+  md.renderer.rules.mark_open = () => '<mark>'
+  md.renderer.rules.mark_close = () => '</mark>'
+  md.renderer.rules.sup_open = () => '<sup>'
+  md.renderer.rules.sup_close = () => '</sup>'
+  md.renderer.rules.sub_open = () => '<sub>'
+  md.renderer.rules.sub_close = () => '</sub>'
+  md.renderer.rules.footnote_ref = (tokens, idx) => {
+    const id = tokens[idx].meta.id as string
+    return `<sup id="fnref:${id}"><a href="#fn:${id}">${id}</a></sup>`
+  }
   return md
 }
 

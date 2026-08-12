@@ -39,4 +39,12 @@ describe('renderBodyHtml', () => {
     expect(html).toContain('hljs')
     expect(html).toContain('def')
   })
+  it('renders mark, sup, sub, emoji and footnotes', () => {
+    const html = renderBodyHtml('==hi== x^2^ H~2~O :fire: note[^1]')
+    expect(html).toContain('<mark>hi</mark>')
+    expect(html).toContain('<sup>2</sup>')
+    expect(html).toContain('<sub>2</sub>')
+    expect(html).toContain('🔥')
+    expect(html).toContain('fnref:1')
+  })
 })
