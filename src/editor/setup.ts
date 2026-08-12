@@ -12,6 +12,7 @@ import { mdHighlightStyle } from './highlight'
 import { imagePasteHandler } from './image-insert'
 import { continueList } from './list-continue'
 import { livePreviewExtensions } from './live-preview'
+import { tableTab } from './table-edit'
 
 export interface EditorOptions {
   onDocChanged(): void
@@ -34,6 +35,8 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     search({ top: true }),
     Prec.high(keymap.of([
       { key: 'Enter', run: continueList },
+      { key: 'Tab', run: view => tableTab(view, 1) },
+      { key: 'Shift-Tab', run: view => tableTab(view, -1) },
       { key: 'Mod-/', run: () => (opts.onToggleSource(), true) },
       { key: 'Mod-b', run: toggleBold },
       { key: 'Mod-i', run: toggleItalic },

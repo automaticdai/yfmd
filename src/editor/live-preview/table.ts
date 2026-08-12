@@ -40,9 +40,7 @@ export function parseTable(src: string): ParsedTable | null {
   return { align, header: splitRow(lines[0]), rows: lines.slice(2).map(splitRow) }
 }
 
-export function formatTable(src: string): string {
-  const parsed = parseTable(src)
-  if (!parsed) return src
+export function formatParsedTable(parsed: ParsedTable): string {
   const { align, header, rows } = parsed
   const ncol = Math.max(header.length, align.length, ...rows.map(r => r.length), 1)
   const widths = Array.from({ length: ncol }, (_, i) =>
@@ -71,6 +69,12 @@ export function formatTable(src: string): string {
       .join(' | ') +
     ' |'
   return [fmtRow(header), delimRow, ...rows.map(fmtRow)].join('\n')
+}
+
+export function formatTable(src: string): string {
+  const parsed = parseTable(src)
+  if (!parsed) return src
+  return formatParsedTable(parsed)
 }
 
 const inlineMd = new MarkdownIt({ html: false, linkify: false })

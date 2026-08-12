@@ -15,6 +15,7 @@ import {
   listCommand, toggleQuote,
 } from './editor/block-commands'
 import { insertImage } from './editor/image-insert'
+import { addTableColumn, addTableRow, removeTableColumn, removeTableRow } from './editor/table-edit'
 import {
   insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
@@ -334,6 +335,10 @@ export default function App() {
       case 'list-unordered': if (view) { listCommand('unordered')(view); view.focus() } break
       case 'list-ordered': if (view) { listCommand('ordered')(view); view.focus() } break
       case 'table': if (view) { insertTable(view); view.focus() } break
+      case 'table-add-row': if (view) { addTableRow(view); view.focus() } break
+      case 'table-del-row': if (view) { removeTableRow(view); view.focus() } break
+      case 'table-add-col': if (view) { addTableColumn(view); view.focus() } break
+      case 'table-del-col': if (view) { removeTableColumn(view); view.focus() } break
       case 'code-block': if (view) { insertCodeBlock(view); view.focus() } break
       case 'math-block': if (view) { insertMathBlock(view); view.focus() } break
       case 'hr': if (view) { insertHorizontalRule(view); view.focus() } break
@@ -358,6 +363,10 @@ export default function App() {
             outline={outline}
             defaultTab={settings.sidebarTab}
             onOpenFile={path => void controllerRef.current?.openPath(path)}
+            onNewFile={path => void controllerRef.current?.createFile(path)}
+            onNewFolder={path => void controllerRef.current?.createFolder(path)}
+            onRename={(oldPath, newPath) => void controllerRef.current?.renamePath(oldPath, newPath)}
+            onDelete={path => void controllerRef.current?.deletePath(path)}
             onJump={pos => {
               const view = viewRef.current
               if (!view) return

@@ -173,3 +173,14 @@ body {
 }
 .settings-row input[type='checkbox'], .settings-radio input { accent-color: var(--accent); }
 .settings-radio { display: flex; align-items: center; gap: 0.3em; color: var(--fg); }
+.context-menu {
+  position: fixed; z-index: 1000; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 0; min-width: 10em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.context-menu button {
+  display: block; width: 100%; text-align: left; padding: 4px 12px;
+  background: none; border: none; color: var(--fg); cursor: pointer; font: inherit;
+}
+.context-menu button:hover { background: var(--code-bg); }
+.tree-rename { width: 100%; font: inherit; padding: 1px 4px; }

@@ -91,6 +91,56 @@ export class DocumentController {
     }
   }
 
+  private isWithin(path: string | null, base: string): boolean {
+    return path !== null && (path === base || path.startsWith(base + '/'))
+  }
+
+  private async refreshTree(): Promise<void> {
+    if (this.meta.folderPath === null) return
+    this.meta.tree = await this.fs.listFolder(this.meta.folderPath)
+    this.emit()
+  }
+
+  async createFile(path: string): Promise<void> {
+    try {
+      await this.fs.writeFile(path, '')
+      await this.refreshTree()
+    } catch (err) {
+      this.host.notify(t('toast.createFailed', { error: err instanceof Error ? err.message : String(err) }))
+    }
+  }
+
+  async createFolder(path: string): Promise<void> {
+    try {
+      await this.fs.mkdir(path)
+      await this.refreshTree()
+    } catch (err) {
+      this.host.notify(t('toast.createFailed', { error: err instanceof Error ? err.message : String(err) }))
+    }
+  }
+
+  async renamePath(oldPath: string, newPath: string): Promise<void> {
+    try {
+      await this.fs.rename(oldPath, newPath)
+      if (this.isWithin(this.meta.path, oldPath)) {
+        this.meta.path = newPath + this.meta.path!.slice(oldPath.length)
+      }
+      await this.refreshTree()
+    } catch (err) {
+      this.host.notify(t('toast.renameFailed', { error: err instanceof Error ? err.message : String(err) }))
+    }
+  }
+
+  async deletePath(path: string): Promise<void> {
+    try {
+      await this.fs.remove(path)
+      if (this.isWithin(this.meta.path, path)) this.meta.path = null
+      await this.refreshTree()
+    } catch (err) {
+      this.host.notify(t('toast.deleteFailed', { error: err instanceof Error ? err.message : String(err) }))
+    }
+  }
+
   async save(): Promise<boolean> {
     if (this.meta.path === null) return this.saveAs()
     try {

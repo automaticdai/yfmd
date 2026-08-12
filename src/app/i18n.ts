@@ -36,6 +36,10 @@ const en = {
   'edit.bulletedList': 'Bulleted List',
   'edit.numberedList': 'Numbered List',
   'edit.table': 'Table',
+  'edit.tableAddRow': 'Add Row',
+  'edit.tableDelRow': 'Delete Row',
+  'edit.tableAddCol': 'Add Column',
+  'edit.tableDelCol': 'Delete Column',
   'edit.codeBlock': 'Code Block',
   'edit.mathBlock': 'Math Block',
   'edit.horizontalRule': 'Horizontal Rule',
@@ -56,6 +60,10 @@ const en = {
   'sidebar.files': 'Files',
   'sidebar.outline': 'Outline',
   'sidebar.openFolder': 'Open a folder to browse files.',
+  'sidebar.newFile': 'New File',
+  'sidebar.newFolder': 'New Folder',
+  'sidebar.rename': 'Rename',
+  'sidebar.delete': 'Delete',
   'outline.empty': 'No headings yet.',
   'outline.untitled': '(untitled)',
 
@@ -77,6 +85,9 @@ const en = {
   'toast.openFailed': 'Could not open file: {error}',
   'toast.saveFailed': 'Could not save: {error}',
   'toast.openFolderFailed': 'Could not open folder: {error}',
+  'toast.createFailed': 'Could not create: {error}',
+  'toast.renameFailed': 'Could not rename: {error}',
+  'toast.deleteFailed': 'Could not delete: {error}',
 } as const
 
 export type MessageKey = keyof typeof en
@@ -114,6 +125,10 @@ const zhCN: Record<MessageKey, string> = {
   'edit.bulletedList': '无序列表',
   'edit.numberedList': '有序列表',
   'edit.table': '表格',
+  'edit.tableAddRow': '添加行',
+  'edit.tableDelRow': '删除行',
+  'edit.tableAddCol': '添加列',
+  'edit.tableDelCol': '删除列',
   'edit.codeBlock': '代码块',
   'edit.mathBlock': '数学公式',
   'edit.horizontalRule': '水平分割线',
@@ -134,6 +149,10 @@ const zhCN: Record<MessageKey, string> = {
   'sidebar.files': '文件',
   'sidebar.outline': '大纲',
   'sidebar.openFolder': '打开文件夹以浏览文件。',
+  'sidebar.newFile': '新建文件',
+  'sidebar.newFolder': '新建文件夹',
+  'sidebar.rename': '重命名',
+  'sidebar.delete': '删除',
   'outline.empty': '暂无标题',
   'outline.untitled': '（未命名）',
 
@@ -155,6 +174,9 @@ const zhCN: Record<MessageKey, string> = {
   'toast.openFailed': '无法打开文件：{error}',
   'toast.saveFailed': '无法保存：{error}',
   'toast.openFolderFailed': '无法打开文件夹：{error}',
+  'toast.createFailed': '无法创建：{error}',
+  'toast.renameFailed': '无法重命名：{error}',
+  'toast.deleteFailed': '无法删除：{error}',
 }
 
 const MESSAGES: Record<Locale, Record<MessageKey, string>> = { en, 'zh-CN': zhCN }

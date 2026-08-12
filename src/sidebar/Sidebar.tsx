@@ -11,10 +11,14 @@ interface Props {
   outline: OutlineItem[]
   defaultTab?: 'files' | 'outline'
   onOpenFile(path: string): void
+  onNewFile(path: string): void
+  onNewFolder(path: string): void
+  onRename(oldPath: string, newPath: string): void
+  onDelete(path: string): void
   onJump(pos: number): void
 }
 
-export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onJump }: Props) {
+export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onNewFile, onNewFolder, onRename, onDelete, onJump }: Props) {
   const [tab, setTab] = useState<'files' | 'outline'>(defaultTab ?? 'files')
   return (
     <aside className="sidebar">
@@ -34,7 +38,9 @@ export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onJ
         {tab === 'files' ? (
           <>
             {folderPath && <div className="sidebar-folder" title={folderPath}>{folderPath}</div>}
-            <FileTreePane tree={tree ?? []} onOpenFile={onOpenFile} />
+            <FileTreePane tree={tree ?? []} folderPath={folderPath}
+              onOpenFile={onOpenFile} onNewFile={onNewFile} onNewFolder={onNewFolder}
+              onRename={onRename} onDelete={onDelete} />
           </>
         ) : (
           <OutlinePane outline={outline} onJump={onJump} />
