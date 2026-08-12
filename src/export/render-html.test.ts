@@ -4,14 +4,14 @@ import { renderBodyHtml } from './render-html'
 describe('renderBodyHtml', () => {
   it('renders GFM basics', () => {
     const html = renderBodyHtml('# T\n\n**b** ~~s~~\n\n| a |\n| - |\n| b |')
-    expect(html).toContain('<h1>T</h1>')
+    expect(html).toContain('<h1 id="t">T</h1>')
     expect(html).toContain('<strong>b</strong>')
     expect(html).toContain('<s>s</s>')
     expect(html).toContain('<table>')
   })
   it('leaves frontmatter out of the export', () => {
     const html = renderBodyHtml('---\ntitle: Doc\ntags:\n  - a\n---\n\n# Body\n')
-    expect(html).toContain('<h1>Body</h1>')
+    expect(html).toContain('<h1 id="body">Body</h1>')
     expect(html).not.toContain('title: Doc')
     expect(html).not.toContain('<hr>')
     expect(html).not.toContain('<ul>')

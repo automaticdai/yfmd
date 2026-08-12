@@ -18,6 +18,7 @@ import {
 } from './editor/block-commands'
 import { insertImage } from './editor/image-insert'
 import { addTableColumn, addTableRow, removeTableColumn, removeTableRow } from './editor/table-edit'
+import { insertToc } from './editor/toc'
 import {
   insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
@@ -367,6 +368,7 @@ export default function App() {
       case 'code-block': if (view) { insertCodeBlock(view); view.focus() } break
       case 'math-block': if (view) { insertMathBlock(view); view.focus() } break
       case 'hr': if (view) { insertHorizontalRule(view); view.focus() } break
+      case 'toc': if (view) { insertToc(view); view.focus() } break
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
       case 'about': setAboutOpen(true); break

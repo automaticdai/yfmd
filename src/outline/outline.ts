@@ -4,6 +4,11 @@ import { frontmatterRange, insideFrontmatter } from '../editor/frontmatter'
 
 export interface OutlineItem { level: number; text: string; from: number }
 
+/** Lowercase slug for heading anchors, keeping CJK/letters/numbers intact. */
+export function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '')
+}
+
 const ATX = /^ATXHeading([1-6])$/
 const SETEXT = /^SetextHeading([12])$/
 

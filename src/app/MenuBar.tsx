@@ -69,6 +69,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'code-block', label: t('edit.codeBlock') },
         { action: 'math-block', label: t('edit.mathBlock') },
         { action: 'hr', label: t('edit.horizontalRule') },
+        { action: 'toc', label: t('edit.toc') },
         { separator: true },
         { action: 'find', label: t('edit.findReplace'), shortcut: 'Ctrl+F' },
       ],

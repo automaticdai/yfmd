@@ -7,6 +7,7 @@ import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import mermaid from 'mermaid'
 import { stripFrontmatter } from '../editor/frontmatter'
+import { slugify } from '../outline/outline'
 
 function mathInlineRule(state: StateInline, silent: boolean): boolean {
   const { src, pos } = state
@@ -110,6 +111,14 @@ export function createExportRenderer(): MarkdownIt {
     return defaultFence(tokens, idx, options, env, self)
   }
   md.renderer.rules.fence = fence
+  const headingOpen: RenderRule = (tokens, idx, options, _env, self) => {
+    const inline = tokens[idx + 1]
+    const text = inline?.children?.map(c => c.content ?? '').join('') ?? ''
+    const id = slugify(text)
+    if (id) tokens[idx].attrSet('id', id)
+    return self.renderToken(tokens, idx, options)
+  }
+  md.renderer.rules.heading_open = headingOpen
   return md
 }
 

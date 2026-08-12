@@ -45,6 +45,7 @@ const en = {
   'edit.codeBlock': 'Code Block',
   'edit.mathBlock': 'Math Block',
   'edit.horizontalRule': 'Horizontal Rule',
+  'edit.toc': 'Table of Contents',
   'edit.findReplace': 'Find / Replace',
 
   'view.toggleSidebar': 'Toggle Sidebar',
@@ -148,6 +149,7 @@ const zhCN: Record<MessageKey, string> = {
   'edit.codeBlock': '代码块',
   'edit.mathBlock': '数学公式',
   'edit.horizontalRule': '水平分割线',
+  'edit.toc': '目录',
   'edit.findReplace': '查找 / 替换',
 
   'view.toggleSidebar': '切换侧边栏',
