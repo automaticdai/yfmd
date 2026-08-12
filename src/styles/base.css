@@ -81,6 +81,17 @@ body {
 .menu-items .shortcut { color: var(--fg-muted); }
 .menu-items button:hover .shortcut { color: #fff; }
 .menu-separator { height: 1px; background: var(--border); margin: 4px 6px; }
+.menu-sub { position: relative; }
+.menu-sub-title {
+  display: flex; justify-content: space-between; gap: 2em; width: 100%;
+  background: none; border: none; color: var(--fg); font-size: 13px;
+  padding: 6px 10px; cursor: default; border-radius: 4px; text-align: left;
+}
+.menu-sub-title:hover { background: var(--accent); color: #fff; }
+.sub-arrow { color: var(--fg-muted); }
+.menu-sub-title:hover .sub-arrow { color: #fff; }
+.menu-sub-items { display: none; left: 100%; top: 0; }
+.menu-sub:hover > .menu-sub-items { display: flex; }
 
 .statusbar {
   display: flex; justify-content: space-between; align-items: center;

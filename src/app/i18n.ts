@@ -21,6 +21,7 @@ const en = {
   'file.exportPdf': 'Export PDF…',
   'file.settings': 'Settings…',
   'file.quit': 'Quit',
+  'file.recent': 'Recent Files',
   'file.clearRecent': 'Clear Recent Files',
 
   'edit.bold': 'Bold',
@@ -122,6 +123,7 @@ const zhCN: Record<MessageKey, string> = {
   'file.exportPdf': '导出 PDF…',
   'file.settings': '设置…',
   'file.quit': '退出',
+  'file.recent': '最近文件',
   'file.clearRecent': '清除最近文件',
 
   'edit.bold': '粗体',

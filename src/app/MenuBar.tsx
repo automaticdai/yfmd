@@ -4,7 +4,8 @@ import { THEMES } from './settings'
 
 export interface MenuAction { action: string; label: string; shortcut?: string; title?: string }
 export interface MenuSeparator { separator: true }
-export type MenuItem = MenuAction | MenuSeparator
+export interface MenuSub { submenu: true; label: string; items: MenuItem[] }
+export type MenuItem = MenuAction | MenuSeparator | MenuSub
 export interface MenuGroup { title: string; items: MenuItem[] }
 
 function basename(path: string): string {
@@ -23,10 +24,15 @@ export function buildMenus(recent: string[]): MenuGroup[] {
   ]
   if (recent.length > 0) {
     fileItems.push({ separator: true })
-    for (const path of recent) {
-      fileItems.push({ action: `open-recent://${path}`, label: basename(path), title: path })
-    }
-    fileItems.push({ action: 'clear-recent', label: t('file.clearRecent') })
+    fileItems.push({
+      submenu: true,
+      label: t('file.recent'),
+      items: [
+        ...recent.map(path => ({ action: `open-recent://${path}`, label: basename(path), title: path })),
+        { separator: true },
+        { action: 'clear-recent', label: t('file.clearRecent') },
+      ],
+    })
   }
   fileItems.push(
     { separator: true },
@@ -82,9 +88,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     },
     {
       title: t('menu.help'),
-      items: [
-        { action: 'about', label: t('help.about') },
-      ],
+      items: [{ action: 'about', label: t('help.about') }],
     },
   ]
 }
@@ -93,6 +97,45 @@ interface MenuBarProps {
   onAction(action: string): void
   checkedActions?: Set<string>
   recent: string[]
+}
+
+function MenuItems({ items, onSelect, checkedActions }: {
+  items: MenuItem[]
+  onSelect(action: string): void
+  checkedActions?: Set<string>
+}) {
+  return (
+    <>
+      {items.map((item, i) => {
+        if ('separator' in item) return <div className="menu-separator" key={i} />
+        if ('submenu' in item) {
+          return (
+            <div className="menu-sub" key={item.label}>
+              <button className="menu-sub-title">
+                <span>{item.label}</span>
+                <span className="sub-arrow">▸</span>
+              </button>
+              <div className="menu-items menu-sub-items">
+                <MenuItems items={item.items} onSelect={onSelect} checkedActions={checkedActions} />
+              </div>
+            </div>
+          )
+        }
+        return (
+          <button
+            key={item.action}
+            data-action={item.action}
+            className={checkedActions?.has(item.action) ? 'checked' : undefined}
+            title={item.title}
+            onClick={() => onSelect(item.action)}
+          >
+            <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
+            {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
+          </button>
+        )
+      })}
+    </>
+  )
 }
 
 export function MenuBar({ onAction, checkedActions, recent }: MenuBarProps) {
@@ -108,6 +151,7 @@ export function MenuBar({ onAction, checkedActions, recent }: MenuBarProps) {
   }, [])
 
   const menus = buildMenus(recent)
+  const select = (action: string) => { setOpen(null); onAction(action) }
 
   return (
     <div className="menubar" ref={barRef}>
@@ -121,22 +165,7 @@ export function MenuBar({ onAction, checkedActions, recent }: MenuBarProps) {
           </button>
           {open === menu.title && (
             <div className="menu-items">
-              {menu.items.map((item, i) =>
-                'separator' in item ? (
-                  <div className="menu-separator" key={i} />
-                ) : (
-                  <button
-                    key={item.action}
-                    data-action={item.action}
-                    className={checkedActions?.has(item.action) ? 'checked' : undefined}
-                    title={item.title}
-                    onClick={() => { setOpen(null); onAction(item.action) }}
-                  >
-                    <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
-                    {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
-                  </button>
-                ),
-              )}
+              <MenuItems items={menu.items} onSelect={select} checkedActions={checkedActions} />
             </div>
           )}
         </div>
