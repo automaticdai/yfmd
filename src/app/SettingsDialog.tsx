@@ -37,7 +37,7 @@ function SliderRow({ label, setting, value, unit, min, max, step, onInput }: {
   )
 }
 
-/** Each option previews itself; the sample row below the pair shows the result. */
+/** Each option previews itself in its own stack. */
 function FontRow({ label, setting, fonts, value, onPick }: {
   label: string
   setting: string
@@ -91,13 +91,6 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
           value={settings.bodyFont} onPick={id => set('bodyFont', id)} />
         <FontRow label="Code font" setting="codeFont" fonts={CODE_FONTS}
           value={settings.codeFont} onPick={id => set('codeFont', id)} />
-        <div className="settings-row settings-sample">
-          <span>Preview</span>
-          <span className="settings-sample-text">
-            <span className="settings-sample-body">The quick brown fox · 深度神经网络 0123</span>
-            <span className="settings-sample-code">const answer = 42;</span>
-          </span>
-        </div>
         <SliderRow label="Max text width" setting="maxWidth" value={settings.maxWidth} unit="rem"
           min={L.maxWidth.min} max={L.maxWidth.max} step={L.maxWidth.step}
           onInput={v => set('maxWidth', v)} />
