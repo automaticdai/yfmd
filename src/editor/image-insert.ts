@@ -25,10 +25,14 @@ const MIME_EXT: Record<string, string> = {
   'image/svg+xml': 'svg',
 }
 
-/**
- * Paste handler: intercept a clipboard image, persist it via the imageSaver
- * facet, and insert a reference. Returns true to suppress the default text paste.
- */
+async function insertImageFile(view: EditorView, file: File): Promise<void> {
+  const ext = MIME_EXT[file.type] ?? 'png'
+  const data = new Uint8Array(await file.arrayBuffer())
+  const src = await view.state.facet(imageSaver)(data, ext)
+  if (src) insertImage(view, file.name || 'image', src)
+}
+
+/** Paste handler: intercept a clipboard image, persist it, insert a reference. */
 export function imagePasteHandler(event: ClipboardEvent, view: EditorView): boolean {
   const items = event.clipboardData?.items
   if (!items) return false
@@ -36,14 +40,26 @@ export function imagePasteHandler(event: ClipboardEvent, view: EditorView): bool
     if (item.kind !== 'file' || !item.type.startsWith('image/')) continue
     const file = item.getAsFile()
     if (!file) continue
-    const saver = view.state.facet(imageSaver)
-    void (async () => {
-      const ext = MIME_EXT[item.type] ?? 'png'
-      const data = new Uint8Array(await file.arrayBuffer())
-      const src = await saver(data, ext)
-      if (src) insertImage(view, file.name || 'image', src)
-    })()
+    void insertImageFile(view, file)
     return true
   }
   return false
+}
+
+/** Drop handler: intercept an image file dropped into the editor. */
+export function imageDropHandler(event: DragEvent, view: EditorView): boolean {
+  const files = event.dataTransfer?.files
+  if (!files || files.length === 0) return false
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      void insertImageFile(view, file)
+      return true
+    }
+  }
+  return false
+}
+
+/** Allow image files to be dropped (preventDefault on dragover). */
+export function imageDragOverHandler(event: DragEvent): boolean {
+  return event.dataTransfer?.types.includes('Files') ?? false
 }
