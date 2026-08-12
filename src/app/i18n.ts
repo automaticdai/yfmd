@@ -10,6 +10,7 @@ const en = {
   'menu.edit': 'Edit',
   'menu.view': 'View',
   'menu.theme': 'Theme',
+  'menu.help': 'Help',
 
   'file.new': 'New',
   'file.openFile': 'Open File…',
@@ -47,6 +48,12 @@ const en = {
 
   'view.toggleSidebar': 'Toggle Sidebar',
   'view.sourceMode': 'Source Mode',
+
+  'help.about': 'About yfmd',
+  'about.version': 'Version',
+  'about.tagline': 'A Typora-style markdown editor',
+  'about.license': 'License',
+  'about.close': 'Close',
 
   'status.untitled': 'untitled',
   'status.unsaved': 'unsaved changes',
@@ -99,6 +106,7 @@ const zhCN: Record<MessageKey, string> = {
   'menu.edit': '编辑',
   'menu.view': '视图',
   'menu.theme': '主题',
+  'menu.help': '帮助',
 
   'file.new': '新建',
   'file.openFile': '打开文件…',
@@ -136,6 +144,12 @@ const zhCN: Record<MessageKey, string> = {
 
   'view.toggleSidebar': '切换侧边栏',
   'view.sourceMode': '源码模式',
+
+  'help.about': '关于 yfmd',
+  'about.version': '版本',
+  'about.tagline': '一款 Typora 风格的 Markdown 编辑器',
+  'about.license': '许可证',
+  'about.close': '关闭',
 
   'status.untitled': '未命名',
   'status.unsaved': '未保存的更改',

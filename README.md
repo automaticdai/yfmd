@@ -75,4 +75,4 @@ all three platforms via the `release` workflow.
 
 ## License
 
-MIT
+[MIT](LICENSE)

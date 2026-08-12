@@ -3,6 +3,7 @@ import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
+import { AboutDialog } from './app/AboutDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
@@ -46,6 +47,7 @@ export default function App() {
   const settingsRef = useRef(settings)
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
@@ -344,6 +346,7 @@ export default function App() {
       case 'hr': if (view) { insertHorizontalRule(view); view.focus() } break
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
+      case 'about': setAboutOpen(true); break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
@@ -391,6 +394,7 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   )

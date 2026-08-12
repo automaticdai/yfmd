@@ -78,6 +78,12 @@ export function buildMenus(recent: string[]): MenuGroup[] {
       title: t('menu.theme'),
       items: THEMES.map(theme => ({ action: `theme:${theme.id}`, label: theme.label })),
     },
+    {
+      title: t('menu.help'),
+      items: [
+        { action: 'about', label: t('help.about') },
+      ],
+    },
   ]
 }
 
