@@ -5,9 +5,11 @@ import { languages } from '@codemirror/language-data'
 import { search, searchKeymap } from '@codemirror/search'
 import { Compartment, type Extension, Prec } from '@codemirror/state'
 import { EditorView, drawSelection, keymap } from '@codemirror/view'
+import { autoPairHandler } from './auto-pair'
 import { headingCommand } from './block-commands'
 import { insertLink, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough } from './commands'
 import { mdHighlightStyle } from './highlight'
+import { continueList } from './list-continue'
 import { livePreviewExtensions } from './live-preview'
 
 export interface EditorOptions {
@@ -29,6 +31,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     syntaxHighlighting(mdHighlightStyle),
     search({ top: true }),
     Prec.high(keymap.of([
+      { key: 'Enter', run: continueList },
       { key: 'Mod-/', run: () => (opts.onToggleSource(), true) },
       { key: 'Mod-b', run: toggleBold },
       { key: 'Mod-i', run: toggleItalic },
@@ -41,6 +44,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
       { key: 'Mod-0', run: headingCommand(0) },
     ])),
     keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
+    EditorView.inputHandler.of(autoPairHandler),
     livePreviewCompartment.of(livePreviewExtensions({ openExternal: opts.openExternal })),
     resolverCompartment.of([]),
     themeCompartment.of([]),
