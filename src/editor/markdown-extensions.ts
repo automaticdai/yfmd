@@ -36,11 +36,11 @@ export function findExtensions(state: EditorState): ExtMatch[] {
     if (inCode(m.index!)) continue
     out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 2, innerTo: m.index! + 2 + m[1].length, kind: 'mark' })
   }
-  for (const m of text.matchAll(/(?<!\^)\^([^\s^][^\^\n]*)\^(?!\^)/g)) {
+  for (const m of text.matchAll(/\^([^\s^][^\^\n]*)\^(?!\^)/g)) {
     if (inCode(m.index!)) continue
     out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'sup' })
   }
-  for (const m of text.matchAll(/(?<!~)~([^\s~][^~\n]*)~(?!~)/g)) {
+  for (const m of text.matchAll(/~([^\s~][^~\n]*)~(?!~)/g)) {
     if (inCode(m.index!)) continue
     out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'sub' })
   }
