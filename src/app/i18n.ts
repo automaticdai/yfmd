@@ -51,6 +51,7 @@ const en = {
   'view.sourceMode': 'Source Mode',
   'view.focusMode': 'Focus Mode',
   'view.typewriterMode': 'Typewriter Mode',
+  'view.lineNumbers': 'Code Line Numbers',
 
   'help.about': 'About yfmd',
   'about.version': 'Version',
@@ -153,6 +154,7 @@ const zhCN: Record<MessageKey, string> = {
   'view.sourceMode': '源码模式',
   'view.focusMode': '专注模式',
   'view.typewriterMode': '打字机模式',
+  'view.lineNumbers': '代码行号',
 
   'help.about': '关于 yfmd',
   'about.version': '版本',

@@ -23,7 +23,8 @@ import {
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, imageSaverCompartment, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { codeLineNumbersField } from './editor/code-line-numbers'
 import { writingModeExtensions } from './editor/writing-mode'
 import { extractOutline, type OutlineItem } from './outline/outline'
 import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
@@ -52,6 +53,7 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
+  const [lineNumbers, setLineNumbers] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
@@ -216,6 +218,12 @@ export default function App() {
     })
   }, [focusMode, typewriterMode])
 
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: codeLineNumbersCompartment.reconfigure(lineNumbers ? codeLineNumbersField : []),
+    })
+  }, [lineNumbers])
+
   /** Dirty-guard then leave: destroys the Tauri window or closes the browser tab. */
   const quitApp = useCallback(async () => {
     const c = controllerRef.current
@@ -364,6 +372,7 @@ export default function App() {
       case 'about': setAboutOpen(true); break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
+      case 'line-numbers': setLineNumbers(v => !v); break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
@@ -374,6 +383,7 @@ export default function App() {
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
+  if (lineNumbers) checkedActions.add('line-numbers')
 
   return (
     <div className="app">

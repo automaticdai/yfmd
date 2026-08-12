@@ -85,6 +85,10 @@
 
 /* tables (source view while editing) */
 .cm-table-line { font-family: var(--code-font, var(--code-font-default)); font-size: 0.9em; }
+.cm-code-lineno {
+  display: inline-block; min-width: 2em; text-align: right; margin-right: 1em;
+  color: var(--fg-muted); user-select: none; font-size: 0.9em;
+}
 /* table widget */
 .cm-table-widget { border-collapse: collapse; margin: 0.5em 0; cursor: pointer; }
 .cm-table-widget th, .cm-table-widget td { border: 1px solid var(--border); padding: 0.35em 0.9em; }

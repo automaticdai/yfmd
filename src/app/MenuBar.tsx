@@ -80,6 +80,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
         { action: 'focus-mode', label: t('view.focusMode') },
         { action: 'typewriter-mode', label: t('view.typewriterMode') },
+        { action: 'line-numbers', label: t('view.lineNumbers') },
       ],
     },
     {
