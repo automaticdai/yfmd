@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { documentDir, join } from '@tauri-apps/api/path'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -30,8 +31,17 @@ export class TauriFileService implements FileService {
     await writeTextFile(path, content)
   }
 
-  saveFileDialog(defaultName: string): Promise<string | null> {
-    return save({ defaultPath: defaultName, filters: MD_FILTERS })
+  async saveFileDialog(defaultName: string): Promise<string | null> {
+    // A bare relative `defaultPath` resolves against the process cwd (src-tauri/
+    // under `tauri dev`), which dropped stray `untitled.md` files into the tree.
+    // Default to the user's Documents directory instead.
+    let defaultPath = defaultName
+    try {
+      defaultPath = await join(await documentDir(), defaultName)
+    } catch {
+      // documents dir unavailable — fall back to the bare name
+    }
+    return save({ defaultPath, filters: MD_FILTERS })
   }
 
   resolveResource(docPath: string | null, src: string): string {

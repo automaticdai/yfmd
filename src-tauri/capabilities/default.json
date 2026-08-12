@@ -8,6 +8,7 @@
     "core:window:allow-destroy",
     "dialog:default",
     "opener:default",
+    "core:path:default",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
     { "identifier": "fs:scope", "allow": [{ "path": "**" }, { "path": "/**" }] }
