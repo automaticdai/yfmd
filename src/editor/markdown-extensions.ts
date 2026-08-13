@@ -48,6 +48,9 @@ export function findExtensions(state: EditorState): ExtMatch[] {
     if (!EMOJI[m[1]] || inCode(m.index!)) continue
     out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'emoji' })
   }
+  // Matches are gathered one kind at a time, so the array isn't in document
+  // order; RangeSetBuilder (the sole consumer) requires ascending `from`.
+  out.sort((a, b) => a.from - b.from)
   return out
 }
 

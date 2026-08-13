@@ -15,6 +15,11 @@ describe('findExtensions', () => {
   it('detects highlight ==text==', () => {
     expect(kinds('a ==hi== b')).toEqual(['mark'])
   })
+  it('returns matches sorted by document position regardless of kind', () => {
+    const matches = findExtensions(state('x^2^ and ==hi=='))
+    const positions = matches.map(m => m.from)
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+  })
   it('detects superscript ^text^ and subscript ~text~', () => {
     expect(kinds('x^2^ and H~2~O')).toEqual(['sup', 'sub'])
   })
@@ -40,6 +45,15 @@ describe('markdownExtensionsField', () => {
   it('builds decorations for superscript/subscript without throwing', () => {
     const s = EditorState.create({
       doc: 'x^2^ and H~2~O',
+      extensions: [markdown({ base: markdownLanguage }), markdownExtensionsField],
+    })
+    expect(() => s.field(markdownExtensionsField)).not.toThrow()
+  })
+  it('builds decorations when a later kind appears before an earlier kind in the doc', () => {
+    // sup occurs before mark in the text, but findExtensions groups matches by
+    // kind (mark loop runs first), so the raw match order is out of position order.
+    const s = EditorState.create({
+      doc: 'x^2^ and ==hi==',
       extensions: [markdown({ base: markdownLanguage }), markdownExtensionsField],
     })
     expect(() => s.field(markdownExtensionsField)).not.toThrow()
