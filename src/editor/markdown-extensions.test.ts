@@ -1,7 +1,7 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { EditorState } from '@codemirror/state'
 import { describe, expect, it } from 'vitest'
-import { findExtensions } from './markdown-extensions'
+import { findExtensions, markdownExtensionsField } from './markdown-extensions'
 
 function state(doc: string): EditorState {
   return EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage })] })
@@ -26,5 +26,22 @@ describe('findExtensions', () => {
   })
   it('ignores extensions inside code blocks', () => {
     expect(kinds('```\n==x==\n```\n\n==y==')).toEqual(['mark'])
+  })
+})
+
+describe('markdownExtensionsField', () => {
+  it('builds decorations for highlight without throwing', () => {
+    const s = EditorState.create({
+      doc: 'a ==hi== b',
+      extensions: [markdown({ base: markdownLanguage }), markdownExtensionsField],
+    })
+    expect(() => s.field(markdownExtensionsField)).not.toThrow()
+  })
+  it('builds decorations for superscript/subscript without throwing', () => {
+    const s = EditorState.create({
+      doc: 'x^2^ and H~2~O',
+      extensions: [markdown({ base: markdownLanguage }), markdownExtensionsField],
+    })
+    expect(() => s.field(markdownExtensionsField)).not.toThrow()
   })
 })

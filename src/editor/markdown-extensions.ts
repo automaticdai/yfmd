@@ -73,8 +73,8 @@ function buildExtensionDecorations(state: EditorState): DecorationSet {
       continue
     }
     builder.add(m.from, m.innerFrom, hide)
-    builder.add(m.innerTo, m.to, hide)
     builder.add(m.innerFrom, m.innerTo, Decoration.mark({ class: m.kind === 'mark' ? 'cm-mark' : m.kind === 'sup' ? 'cm-sup' : 'cm-sub' }))
+    builder.add(m.innerTo, m.to, hide)
   }
   return builder.finish()
 }
