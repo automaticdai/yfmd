@@ -7,6 +7,7 @@ import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import mermaid from 'mermaid'
 import { stripFrontmatter } from '../editor/frontmatter'
+import { ALERT_ICONS, ALERT_LABELS, type AlertKind } from '../editor/live-preview/inline-decorations'
 import { EMOJI } from '../editor/markdown-extensions'
 import { slugify } from '../outline/outline'
 
@@ -150,6 +151,65 @@ function footnoteRefRule(state: StateInline, silent: boolean): boolean {
   return true
 }
 
+function alertPlugin(md: MarkdownIt): void {
+  md.core.ruler.after('block', 'github-alerts', state => {
+    const tokens = state.tokens
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i].type !== 'blockquote_open') continue
+      let inlineIdx = -1
+      for (let j = i + 1; j < tokens.length; j++) {
+        if (tokens[j].type === 'blockquote_close') break
+        if (tokens[j].type === 'inline') {
+          inlineIdx = j
+          break
+        }
+      }
+      if (inlineIdx === -1) continue
+      const inlineToken = tokens[inlineIdx]
+      const firstText = inlineToken.content
+      const match = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\n|\s*)/i.exec(firstText)
+      if (!match) continue
+      const kind = match[1].toLowerCase() as AlertKind
+
+      tokens[i].type = 'alert_open'
+      tokens[i].tag = 'div'
+      tokens[i].attrs = [['class', `markdown-alert markdown-alert-${kind}`]]
+
+      let depth = 1
+      for (let j = i + 1; j < tokens.length; j++) {
+        if (tokens[j].type === 'blockquote_open' || tokens[j].type === 'alert_open') depth++
+        if (tokens[j].type === 'blockquote_close') {
+          depth--
+          if (depth === 0) {
+            tokens[j].type = 'alert_close'
+            tokens[j].tag = 'div'
+            break
+          }
+        }
+      }
+
+      inlineToken.content = firstText.slice(match[0].length)
+      if (inlineToken.children?.length) {
+        const firstChild = inlineToken.children[0]
+        if (firstChild && firstChild.type === 'text') {
+          firstChild.content = firstChild.content.replace(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\n|\s*)/i, '')
+        }
+      }
+
+      const titleToken = new state.Token('alert_title', 'p', 0)
+      titleToken.content = kind
+      tokens.splice(i + 1, 0, titleToken)
+    }
+  })
+
+  md.renderer.rules.alert_open = (tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options)
+  md.renderer.rules.alert_close = (tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options)
+  md.renderer.rules.alert_title = (tokens, idx) => {
+    const kind = tokens[idx].content as AlertKind
+    return `<p class="markdown-alert-title">${ALERT_ICONS[kind]}<span>${ALERT_LABELS[kind]}</span></p>\n`
+  }
+}
+
 export function createExportRenderer(): MarkdownIt {
   const md: MarkdownIt = new MarkdownIt({
     html: false,
@@ -162,6 +222,7 @@ export function createExportRenderer(): MarkdownIt {
     },
   })
   md.use(taskListPlugin)
+  md.use(alertPlugin)
   md.inline.ruler.after('escape', 'math_inline', mathInlineRule)
   md.block.ruler.after('fence', 'math_block', mathBlockRule)
   md.inline.ruler.after('backticks', 'mark', markRule)
@@ -253,6 +314,25 @@ const EXPORT_CSS = `
   h3 { font-size: 1.3em; }
   a { color: #4a89dc; }
   blockquote { border-left: 4px solid #e5e5e5; margin-left: 0; padding-left: 1em; color: #777; }
+  .markdown-alert {
+    padding: 0.5rem 1rem; margin: 1rem 0; color: inherit;
+    border-left: 0.25em solid #d0d7de; border-radius: 4px;
+  }
+  .markdown-alert-note { border-left-color: #0969da; background-color: rgba(9, 105, 218, 0.08); }
+  .markdown-alert-tip { border-left-color: #1a7f37; background-color: rgba(26, 127, 55, 0.08); }
+  .markdown-alert-important { border-left-color: #8250df; background-color: rgba(130, 80, 223, 0.08); }
+  .markdown-alert-warning { border-left-color: #9a6700; background-color: rgba(154, 103, 0, 0.08); }
+  .markdown-alert-caution { border-left-color: #cf222e; background-color: rgba(207, 34, 46, 0.08); }
+  .markdown-alert-title {
+    display: flex; align-items: center; gap: 0.4em;
+    font-weight: 600; font-size: 0.95em; margin: 0 0 0.4em 0;
+  }
+  .markdown-alert-note .markdown-alert-title { color: #0969da; }
+  .markdown-alert-tip .markdown-alert-title { color: #1a7f37; }
+  .markdown-alert-important .markdown-alert-title { color: #8250df; }
+  .markdown-alert-warning .markdown-alert-title { color: #9a6700; }
+  .markdown-alert-caution .markdown-alert-title { color: #cf222e; }
+  .markdown-alert-title svg { fill: currentColor; }
   code { font-family: Consolas, 'Fira Code', monospace; font-size: 0.9em;
          background: #f4f4f4; border-radius: 3px; padding: 1px 4px; }
   pre { background: #f6f8fa; border-radius: 6px; padding: 1em; overflow-x: auto; }

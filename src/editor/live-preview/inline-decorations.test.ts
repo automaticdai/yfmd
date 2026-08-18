@@ -111,4 +111,23 @@ describe('inline mark hiding', () => {
     expect(classes.join(' ')).toContain('cm-heading-line-1')
     expect(classes.join(' ')).toContain('cm-quote-line')
   })
+  it('decorates alert quote blocks with alert line classes and replaces tag outside cursor', () => {
+    const doc = '> [!NOTE]\n> Highlights information'
+    const outside = buildInlineDecorations(mkState(doc, 20))
+    const classes: string[] = []
+    const it = outside.lines.iter()
+    while (it.value) { classes.push((it.value.spec as { class: string }).class); it.next() }
+    expect(classes.join(' ')).toContain('cm-alert-note')
+    
+    // Alert tag [!NOTE] replaced with widget when cursor outside first line
+    const ranges = hiddenRanges(outside.hides)
+    expect(ranges.some(([f, t]) => doc.slice(f, t) === '[!NOTE]')).toBe(true)
+
+    // When cursor is inside first line, [!NOTE] is revealed
+    const inside = buildInlineDecorations(mkState(doc, 5))
+    const insideRanges = hiddenRanges(inside.hides)
+    // When cursor is on line 1, line 1 quote mark and [!NOTE] are revealed (not in insideRanges)
+    expect(insideRanges.some(([f, t]) => doc.slice(f, t) === '[!NOTE]')).toBe(false)
+  })
 })
+

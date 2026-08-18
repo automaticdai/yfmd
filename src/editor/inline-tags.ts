@@ -5,6 +5,8 @@ import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 
+import { findMathRanges } from './live-preview/math'
+
 const TAG = /(^|[\s(])(#[\p{L}\p{N}_][\p{L}\p{N}_-]*)/gu
 
 function inCodeOrHeading(state: EditorState, pos: number): boolean {
@@ -13,6 +15,8 @@ function inCodeOrHeading(state: EditorState, pos: number): boolean {
     if (name === 'FencedCode' || name === 'CodeBlock' || name === 'InlineCode' ||
         /^ATXHeading/.test(name) || /^SetextHeading/.test(name)) return true
   }
+  const mathRanges = findMathRanges(state)
+  if (mathRanges.some(m => pos >= m.from && pos <= m.to)) return true
   return false
 }
 

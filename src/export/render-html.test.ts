@@ -47,4 +47,32 @@ describe('renderBodyHtml', () => {
     expect(html).toContain('🔥')
     expect(html).toContain('fnref:1')
   })
+  it('renders GitHub alert quote blocks (Note, Tip, Important, Warning, Caution)', () => {
+    const markdown = [
+      '> [!NOTE]',
+      '> Highlights information',
+      '',
+      '> [!TIP]',
+      '> Helpful tip',
+      '',
+      '> [!IMPORTANT]',
+      '> Important details',
+      '',
+      '> [!WARNING]',
+      '> Warning alert',
+      '',
+      '> [!CAUTION]',
+      '> Caution alert',
+    ].join('\n')
+    const html = renderBodyHtml(markdown)
+    expect(html).toContain('class="markdown-alert markdown-alert-note"')
+    expect(html).toContain('class="markdown-alert markdown-alert-tip"')
+    expect(html).toContain('class="markdown-alert markdown-alert-important"')
+    expect(html).toContain('class="markdown-alert markdown-alert-warning"')
+    expect(html).toContain('class="markdown-alert markdown-alert-caution"')
+    expect(html).toContain('class="markdown-alert-title"')
+    expect(html).toContain('Highlights information')
+    expect(html).toContain('Helpful tip')
+  })
 })
+

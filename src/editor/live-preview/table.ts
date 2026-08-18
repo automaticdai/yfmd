@@ -114,9 +114,14 @@ function startResize(e: MouseEvent, col: number, view: EditorView, tableEl: HTML
 export class TableWidget extends WidgetType {
   constructor(readonly src: string) { super() }
   eq(other: TableWidget) { return other.src === this.src }
-  get estimatedHeight() { return 80 }
+  get estimatedHeight() {
+    const lines = this.src.split('\n').filter(l => l.trim() !== '').length
+    return Math.max(40, lines * 36)
+  }
 
   toDOM(view: EditorView) {
+    const container = document.createElement('div')
+    container.className = 'cm-table-container'
     const table = document.createElement('table')
     table.className = 'cm-table-widget'
     const parsed = parseTable(this.src)
@@ -146,13 +151,14 @@ export class TableWidget extends WidgetType {
     } else {
       table.textContent = this.src
     }
-    table.addEventListener('mousedown', e => {
+    container.appendChild(table)
+    container.addEventListener('mousedown', e => {
       e.preventDefault()
-      const pos = view.posAtDOM(table)
+      const pos = view.posAtDOM(container)
       view.dispatch({ selection: { anchor: pos } })
       view.focus()
     })
-    return table
+    return container
   }
   ignoreEvent() { return true }
 }

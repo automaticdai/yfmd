@@ -27,7 +27,7 @@ describe('loadSettings', () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS)
   })
   it('round-trips saved settings', () => {
-    const s = { ...DEFAULT_SETTINGS, theme: 'night' as const, maxWidth: 60, autosave: true }
+    const s = { ...DEFAULT_SETTINGS, theme: 'night' as const, maxWidth: 60, autosave: true, codeLineNumbers: true }
     saveSettings(s)
     expect(loadSettings()).toEqual(s)
   })

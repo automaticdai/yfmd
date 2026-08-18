@@ -123,6 +123,15 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
             onChange={e => set('autosave', e.target.checked)}
           />
         </label>
+        <label className="settings-row">
+          <span>{t('settings.codeLineNumbers')}</span>
+          <input
+            type="checkbox"
+            data-setting="codeLineNumbers"
+            checked={settings.codeLineNumbers}
+            onChange={e => set('codeLineNumbers', e.target.checked)}
+          />
+        </label>
         <div className="settings-row">
           <span>{t('settings.sidebarOpensOn')}</span>
           <span className="settings-control">

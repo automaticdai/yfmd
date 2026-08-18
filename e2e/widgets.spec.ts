@@ -16,11 +16,17 @@ test('inline math renders and reveals on click', async ({ page }) => {
   await expect(page.locator('.cm-content')).toContainText('$a^2+b^2$')
 })
 
-test('block math renders as a centered widget', async ({ page }) => {
+test('block math renders as a centered widget and reveals on click', async ({ page }) => {
   await openApp(page)
-  await setDoc(page, 'before\n\n$$\nE=mc^2\n$$\n\nafter')
+  await setDoc(page, 'before\n\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx = \\sqrt{\\pi}\n$$\n\nafter')
   await setCursor(page, 0)
-  await expect(page.locator('.cm-math-block')).toBeVisible()
+  const mathBlock = page.locator('.cm-math-block')
+  await expect(mathBlock).toBeVisible()
+  await expect(mathBlock.locator('.katex')).toBeVisible()
+
+  // Clicking the block math reveals raw source for editing
+  await mathBlock.click({ force: true })
+  await expect(page.locator('.cm-content')).toContainText('\\int_{-\\infty}^{\\infty}')
 })
 
 test('checkbox click toggles the source text', async ({ page }) => {
@@ -41,6 +47,25 @@ test('table renders as widget and opens aligned source on click', async ({ page 
   await table.click()
   await expect(page.locator('.cm-table-widget')).toHaveCount(0)
   expect(await docText(page)).toContain('| a   | bb  |') // auto-aligned
+})
+
+test('clicking text below a table selects correct position', async ({ page }) => {
+  await openApp(page)
+  const doc = '# Title\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nTargetLineHere'
+  await setDoc(page, doc)
+  await setCursor(page, 0)
+  await expect(page.locator('.cm-table-widget')).toBeVisible()
+  
+  const target = page.locator('.cm-line', { hasText: 'TargetLineHere' })
+  await target.click()
+  
+  const targetPos = doc.indexOf('TargetLineHere')
+  const cursorPos = await page.evaluate(() => {
+    const view = (window as unknown as { __yfmdView: { state: { selection: { main: { head: number } } } } }).__yfmdView
+    return view.state.selection.main.head
+  })
+  expect(cursorPos).toBeGreaterThanOrEqual(targetPos)
+  expect(cursorPos).toBeLessThanOrEqual(targetPos + 'TargetLineHere'.length)
 })
 
 test('mermaid block renders an svg diagram', async ({ page }) => {

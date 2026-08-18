@@ -33,5 +33,10 @@ export async function setCursor(page: Page, pos: number): Promise<void> {
 
 export async function menuAction(page: Page, menu: string, action: string): Promise<void> {
   await page.locator('.menu-title', { hasText: menu }).click()
-  await page.locator(`[data-action="${action}"]`).click()
+  const btn = page.locator(`[data-action="${action}"]`)
+  const sub = btn.locator('xpath=ancestor::div[contains(@class, "menu-sub")]')
+  if (await sub.count() > 0) {
+    await sub.first().hover()
+  }
+  await btn.click()
 }

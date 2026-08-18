@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { t } from './i18n'
+import { formatRecentLabels } from './recent-files'
 import { THEMES } from './settings'
 
 export interface MenuAction { action: string; label: string; shortcut?: string; title?: string }
@@ -7,10 +8,6 @@ export interface MenuSeparator { separator: true }
 export interface MenuSub { submenu: true; label: string; items: MenuItem[] }
 export type MenuItem = MenuAction | MenuSeparator | MenuSub
 export interface MenuGroup { title: string; items: MenuItem[] }
-
-function basename(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1)
-}
 
 export function buildMenus(recent: string[]): MenuGroup[] {
   const fileItems: MenuItem[] = [
@@ -22,18 +19,22 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     { action: 'export-html', label: t('file.exportHtml') },
     { action: 'export-pdf', label: t('file.exportPdf') },
   ]
-  if (recent.length > 0) {
-    fileItems.push({ separator: true })
-    fileItems.push({
-      submenu: true,
-      label: t('file.recent'),
-      items: [
-        ...recent.map(path => ({ action: `open-recent://${path}`, label: basename(path), title: path })),
-        { separator: true },
-        { action: 'clear-recent', label: t('file.clearRecent') },
-      ],
-    })
-  }
+
+  const recentEntries = formatRecentLabels(recent)
+  const recentItems: MenuItem[] = recentEntries.length > 0
+    ? [
+      ...recentEntries.map(({ path, label }) => ({
+        action: `open-recent://${path}`, label, title: path,
+      })),
+      { separator: true },
+      { action: 'clear-recent', label: t('file.clearRecent') },
+    ]
+    : [{ action: '', label: t('file.noRecent'), title: '' }]
+
+  fileItems.push(
+    { separator: true },
+    { submenu: true, label: t('file.recent'), items: recentItems },
+  )
   fileItems.push(
     { separator: true },
     { action: 'settings', label: t('file.settings'), shortcut: 'Ctrl+,' },
@@ -56,16 +57,36 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'heading:2', label: t('edit.heading2'), shortcut: 'Ctrl+2' },
         { action: 'heading:3', label: t('edit.heading3'), shortcut: 'Ctrl+3' },
         { action: 'heading:0', label: t('edit.paragraph'), shortcut: 'Ctrl+0' },
-        { action: 'quote', label: t('edit.quote') },
+        {
+          submenu: true,
+          label: t('edit.quoteMenu'),
+          items: [
+            { action: 'quote', label: t('edit.quote') },
+            { separator: true },
+            { action: 'alert:note', label: t('edit.alertNote') },
+            { action: 'alert:tip', label: t('edit.alertTip') },
+            { action: 'alert:important', label: t('edit.alertImportant') },
+            { action: 'alert:warning', label: t('edit.alertWarning') },
+            { action: 'alert:caution', label: t('edit.alertCaution') },
+          ],
+        },
         { separator: true },
         { action: 'list-unordered', label: t('edit.bulletedList') },
         { action: 'list-ordered', label: t('edit.numberedList') },
         { separator: true },
-        { action: 'table', label: t('edit.table') },
-        { action: 'table-add-row', label: t('edit.tableAddRow') },
-        { action: 'table-del-row', label: t('edit.tableDelRow') },
-        { action: 'table-add-col', label: t('edit.tableAddCol') },
-        { action: 'table-del-col', label: t('edit.tableDelCol') },
+        {
+          submenu: true,
+          label: t('edit.table'),
+          items: [
+            { action: 'table-creator', label: t('edit.tableCreator') },
+            { action: 'table', label: t('edit.tableQuick') },
+            { separator: true },
+            { action: 'table-add-row', label: t('edit.tableAddRow') },
+            { action: 'table-del-row', label: t('edit.tableDelRow') },
+            { action: 'table-add-col', label: t('edit.tableAddCol') },
+            { action: 'table-del-col', label: t('edit.tableDelCol') },
+          ],
+        },
         { action: 'code-block', label: t('edit.codeBlock') },
         { action: 'math-block', label: t('edit.mathBlock') },
         { action: 'hr', label: t('edit.horizontalRule') },
@@ -79,9 +100,8 @@ export function buildMenus(recent: string[]): MenuGroup[] {
       items: [
         { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'Ctrl+Shift+L' },
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
-        { action: 'focus-mode', label: t('view.focusMode') },
-        { action: 'typewriter-mode', label: t('view.typewriterMode') },
-        { action: 'line-numbers', label: t('view.lineNumbers') },
+        { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'Ctrl+Shift+F' },
+        { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'Ctrl+Shift+T' },
       ],
     },
     {
@@ -128,6 +148,17 @@ function MenuItems({ items, onSelect, checkedActions }: {
             </div>
           )
         }
+        // Empty-state placeholder (e.g. "No Recent Files")
+        if (!item.action) {
+          return (
+            <button key={`empty-${i}`} className="menu-disabled" disabled>
+              <span>{item.label}</span>
+            </button>
+          )
+        }
+        // Recent file entry — show a remove (✕) button
+        const isRecent = item.action.startsWith('open-recent://')
+        const recentPath = isRecent ? item.action.slice('open-recent://'.length) : null
         return (
           <button
             key={item.action}
@@ -138,6 +169,13 @@ function MenuItems({ items, onSelect, checkedActions }: {
           >
             <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
             {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
+            {recentPath && (
+              <span
+                className="recent-remove"
+                title={t('file.removeRecent')}
+                onClick={e => { e.stopPropagation(); onSelect(`remove-recent://${recentPath}`) }}
+              >✕</span>
+            )}
           </button>
         )
       })}

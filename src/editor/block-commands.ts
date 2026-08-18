@@ -134,8 +134,39 @@ function insertBlockCommand(snippet: string, selStart: number, selEnd = selStart
   }
 }
 
-export const insertTable = insertBlockCommand(
-  '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell     | Cell     |', 2, 10)
+/**
+ * Create a markdown table snippet with `rows` data rows and `cols` columns.
+ * E.g. rows = 3, cols = 3 creates:
+ * | Header 1 | Header 2 | Header 3 |
+ * | -------- | -------- | -------- |
+ * | Cell     | Cell     | Cell     |
+ * | Cell     | Cell     | Cell     |
+ * | Cell     | Cell     | Cell     |
+ */
+export function createTableSnippet(rows: number, cols: number): { snippet: string; selStart: number; selEnd: number } {
+  const c = Math.max(1, cols)
+  const r = Math.max(1, rows)
+  const headers = Array.from({ length: c }, (_, i) => `Header ${i + 1}`)
+  const delims = Array.from({ length: c }, () => '--------')
+  const headerLine = `| ${headers.join(' | ')} |`
+  const delimLine = `| ${delims.join(' | ')} |`
+  const bodyLines = Array.from({ length: r }, () => `| ${Array.from({ length: c }, () => 'Cell').join('     | ')}     |`)
+  const snippet = [headerLine, delimLine, ...bodyLines].join('\n')
+  return { snippet, selStart: 2, selEnd: 2 + headers[0].length }
+}
+
+export function insertCustomTable(rows: number, cols: number): Command {
+  const { snippet, selStart, selEnd } = createTableSnippet(rows, cols)
+  return insertBlockCommand(snippet, selStart, selEnd)
+}
+
+export const insertTable = insertCustomTable(1, 2)
 export const insertCodeBlock = insertBlockCommand('```\n\n```', 4)
 export const insertMathBlock = insertBlockCommand('$$\n\n$$', 3)
 export const insertHorizontalRule = insertBlockCommand('---', 3)
+export const insertAlert = (kind: 'note' | 'tip' | 'important' | 'warning' | 'caution'): Command => {
+  const upper = kind.toUpperCase()
+  const snippet = `> [!${upper}]\n> `
+  return insertBlockCommand(snippet, snippet.length)
+}
+

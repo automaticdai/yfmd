@@ -63,3 +63,37 @@ test('Edit menu inserts a table that renders as a widget', async ({ page }) => {
   await expect(page.locator('.cm-table-widget')).toBeVisible()
   await expect(page.locator('.cm-table-widget th').first()).toHaveText('Header 1')
 })
+
+test('Table Creator dialog creates custom m x n table', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, '')
+  await menuAction(page, 'Edit', 'table-creator')
+  
+  const dialog = page.locator('.table-creator-dialog')
+  await expect(dialog).toBeVisible()
+  
+  // Click on a 3x4 cell in the grid
+  const cell = page.locator('.table-grid-cell[title="3 × 4"]')
+  await cell.click()
+  
+  await expect(dialog).not.toBeVisible()
+  const text = await docText(page)
+  expect(text).toContain('| Header 1 | Header 2 | Header 3 | Header 4 |')
+  expect(text).toContain('| -------- | -------- | -------- | -------- |')
+})
+
+test('Alert Callout renders title badge and colored border in live preview', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, '> [!NOTE]\n> Important alert message')
+  await setCursor(page, 20) // cursor on second line
+
+  const alertLine = page.locator('.cm-alert-note')
+  await expect(alertLine.first()).toBeVisible()
+  
+  // First line displays styled alert title badge
+  const title = page.locator('.cm-alert-title-note')
+  await expect(title).toBeVisible()
+  await expect(title).toContainText('Note')
+})
+
+

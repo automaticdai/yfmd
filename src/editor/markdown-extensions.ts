@@ -2,6 +2,7 @@ import { syntaxTree } from '@codemirror/language'
 import type { EditorState } from '@codemirror/state'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
+import { findMathRanges } from './live-preview/math'
 
 export type ExtKind = 'mark' | 'sup' | 'sub' | 'emoji'
 export interface ExtMatch { from: number; to: number; innerFrom: number; innerTo: number; kind: ExtKind }
@@ -16,12 +17,20 @@ function codeRanges(state: EditorState): Array<[number, number]> {
   const ranges: Array<[number, number]> = []
   syntaxTree(state).iterate({
     enter(node): boolean | void {
-      if (node.name === 'FencedCode' || node.name === 'CodeBlock' || node.name === 'InlineCode') {
+      if (
+        node.name === 'FencedCode' ||
+        node.name === 'CodeBlock' ||
+        node.name === 'InlineCode' ||
+        node.name === 'Table'
+      ) {
         ranges.push([node.from, node.to])
         return false
       }
     },
   })
+  for (const m of findMathRanges(state)) {
+    ranges.push([m.from, m.to])
+  }
   return ranges
 }
 

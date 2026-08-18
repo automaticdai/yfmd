@@ -1,7 +1,7 @@
 import { EditorSelection, EditorState } from '@codemirror/state'
 import { describe, expect, it } from 'vitest'
 import {
-  insertBlockChanges, setHeadingChanges, toggleListChanges, toggleQuoteChanges,
+  createTableSnippet, insertBlockChanges, setHeadingChanges, toggleListChanges, toggleQuoteChanges,
 } from './block-commands'
 
 function sel(doc: string, pos: number): EditorState {
@@ -93,3 +93,34 @@ describe('insertBlockChanges', () => {
     expect(next.selection.main.to).toBe(2)
   })
 })
+
+describe('createTableSnippet', () => {
+  it('generates a 1x2 table (default)', () => {
+    const { snippet, selStart, selEnd } = createTableSnippet(1, 2)
+    expect(snippet).toBe(
+      '| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell     | Cell     |',
+    )
+    expect(selStart).toBe(2)
+    expect(selEnd).toBe(10)
+  })
+
+  it('generates an m x n custom table (3x3)', () => {
+    const { snippet } = createTableSnippet(3, 3)
+    const expected = [
+      '| Header 1 | Header 2 | Header 3 |',
+      '| -------- | -------- | -------- |',
+      '| Cell     | Cell     | Cell     |',
+      '| Cell     | Cell     | Cell     |',
+      '| Cell     | Cell     | Cell     |',
+    ].join('\n')
+    expect(snippet).toBe(expected)
+  })
+
+  it('clamps min rows and cols to at least 1', () => {
+    const { snippet } = createTableSnippet(0, 0)
+    expect(snippet).toBe(
+      '| Header 1 |\n| -------- |\n| Cell     |',
+    )
+  })
+})
+

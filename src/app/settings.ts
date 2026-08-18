@@ -22,6 +22,7 @@ export interface Settings {
   fontSize: number      // px
   lineHeight: number
   autosave: boolean
+  codeLineNumbers: boolean
   sidebarTab: 'files' | 'outline'
 }
 
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fontSize: 16,
   lineHeight: 1.7,
   autosave: false,
+  codeLineNumbers: false,
   sidebarTab: 'files',
 }
 
@@ -94,6 +96,7 @@ export function loadSettings(): Settings {
     fontSize: num(raw.fontSize, D.fontSize, L.fontSize.min, L.fontSize.max),
     lineHeight: num(raw.lineHeight, D.lineHeight, L.lineHeight.min, L.lineHeight.max),
     autosave: typeof raw.autosave === 'boolean' ? raw.autosave : D.autosave,
+    codeLineNumbers: typeof raw.codeLineNumbers === 'boolean' ? raw.codeLineNumbers : D.codeLineNumbers,
     sidebarTab: raw.sidebarTab === 'outline' ? 'outline' : 'files',
   }
 }

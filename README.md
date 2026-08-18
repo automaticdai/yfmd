@@ -11,20 +11,36 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Live WYSIWYG editing** — inline syntax (bold, italic, code, links, strikethrough)
   hides its markers until the cursor enters; headings, blockquotes, and code blocks
   are styled in place
+- **GitHub Alert Callouts** — supports `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`,
+  `> [!WARNING]`, and `> [!CAUTION]` with distinct colors and SVG title badges
+- **Interactive Tables & Table Creator** — render as real HTML tables; visual
+  $m \times n$ Table Creator dialog (`Edit → Table → Table Creator…`), table actions
+  (Add/Delete Row & Column), and auto-aligned pipe formatting
 - **Math** — inline `$…$` and block `$$…$$` rendered with KaTeX (currency-safe:
   `costs $5 and $10` stays text)
 - **Mermaid diagrams** — fenced ` ```mermaid ` blocks render as SVG, with inline
   error boxes for invalid diagrams
-- **Tables** — render as real HTML tables; clicking one drops you into
-  pipe-aligned source, re-aligned automatically when the cursor enters
 - **Task lists** — clickable checkboxes that update the source text
+- **Markdown extensions** — `==highlight==`, `^superscript^`, `~subscript~`,
+  `:emoji:` shortcodes, and `[^n]` footnotes
+- **Images** — paste, drag-and-drop, or insert from the Edit menu
+- **Inline `#tags`** — styled and clickable in the rendered view
+- **Table of contents** — inserted from the Edit menu; heading anchors carry
+  through to HTML export
 - **Frontmatter** — a leading `---` YAML block renders as one quiet metadata box
   instead of a rule, a list and a stray heading; excluded from exports
-- **Fonts** — editor and code fonts picked in Settings, each stack backed by CJK
-  fallbacks
+- **Recent Files Management** — sub-menu in File menu with smart path disambiguation
+  and per-file removal buttons
+- **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
+  text width, side margins, font size, line height, autosave, and code block line numbers
 - **Sidebar** — folder file tree and a live document outline with jump-to-heading
-- **Export** — standalone offline HTML (MathML math, inline mermaid SVG, inlined
-  CSS/highlighting) and PDF via the system print dialog
+- **Writing aids** — focus mode (`Ctrl+Shift+F`, dims everything but the active
+  line) and typewriter mode (`Ctrl+Shift+T`, keeps the cursor vertically
+  centered), word/character count with reading time in the status bar
+- **Custom themes** — import a Typora-style CSS theme (Theme menu), applied to
+  both the editor and HTML export
+- **Export** — standalone offline HTML (MathML math, inline mermaid SVG, alerts,
+  inlined CSS/highlighting) and PDF via the system print dialog
 - **Light/dark themes**, source-mode toggle (`Ctrl+/`), find/replace (`Ctrl+F`)
 
 The markdown text is always the single source of truth: rendering is a decoration
@@ -75,4 +91,5 @@ all three platforms via the `release` workflow.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2026 automaticdai
+

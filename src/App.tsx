@@ -5,17 +5,18 @@ import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
 import { AboutDialog } from './app/AboutDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
+import { TableCreatorDialog } from './app/TableCreatorDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
 import { makeImageSaver } from './app/image-saver'
 import { loadCustomTheme, saveCustomTheme } from './app/custom-theme'
 import { extractPalette } from './app/theme-import'
 import { countDocStats, type DocStats } from './app/word-count'
-import { clearRecent, loadRecent } from './app/recent-files'
+import { clearRecent, loadRecent, removeRecent } from './app/recent-files'
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
 import {
-  headingCommand, insertCodeBlock, insertHorizontalRule, insertMathBlock, insertTable,
+  headingCommand, insertAlert, insertCodeBlock, insertCustomTable, insertHorizontalRule, insertMathBlock, insertTable,
   listCommand, toggleQuote,
 } from './editor/block-commands'
 import { insertImage } from './editor/image-insert'
@@ -54,9 +55,9 @@ export default function App() {
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [tableCreatorOpen, setTableCreatorOpen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
-  const [lineNumbers, setLineNumbers] = useState(false)
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -224,9 +225,9 @@ export default function App() {
 
   useEffect(() => {
     viewRef.current?.dispatch({
-      effects: codeLineNumbersCompartment.reconfigure(lineNumbers ? codeLineNumbersField : []),
+      effects: codeLineNumbersCompartment.reconfigure(settings.codeLineNumbers ? codeLineNumbersField : []),
     })
-  }, [lineNumbers])
+  }, [settings.codeLineNumbers])
 
   // apply (or clear) the imported theme's palette on the document root
   useEffect(() => {
@@ -290,6 +291,8 @@ export default function App() {
       const key = e.key.toLowerCase()
       if (key === ',') { e.preventDefault(); setSettingsOpen(o => !o); return }
       if (key === 'l' && e.shiftKey) { e.preventDefault(); setSidebarVisible(v => !v); return }
+      if (key === 'f' && e.shiftKey) { e.preventDefault(); setFocusMode(v => !v); return }
+      if (key === 't' && e.shiftKey) { e.preventDefault(); setTypewriterMode(v => !v); return }
       const c = controllerRef.current
       if (!c) return
       if (key === 's' && e.shiftKey) { e.preventDefault(); void c.saveAs() }
@@ -315,8 +318,17 @@ export default function App() {
       if (view) { headingCommand(level)(view); view.focus() }
       return
     }
+    if (action.startsWith('alert:')) {
+      const kind = action.slice('alert:'.length) as 'note' | 'tip' | 'important' | 'warning' | 'caution'
+      if (view) { insertAlert(kind)(view); view.focus() }
+      return
+    }
     if (action.startsWith('open-recent://')) {
       void c?.openPath(action.slice('open-recent://'.length))
+      return
+    }
+    if (action.startsWith('remove-recent://')) {
+      setRecent(removeRecent(action.slice('remove-recent://'.length)))
       return
     }
     if (action === 'clear-recent') {
@@ -375,6 +387,7 @@ export default function App() {
       case 'list-unordered': if (view) { listCommand('unordered')(view); view.focus() } break
       case 'list-ordered': if (view) { listCommand('ordered')(view); view.focus() } break
       case 'table': if (view) { insertTable(view); view.focus() } break
+      case 'table-creator': setTableCreatorOpen(true); break
       case 'table-add-row': if (view) { addTableRow(view); view.focus() } break
       case 'table-del-row': if (view) { removeTableRow(view); view.focus() } break
       case 'table-add-col': if (view) { addTableColumn(view); view.focus() } break
@@ -388,7 +401,6 @@ export default function App() {
       case 'about': setAboutOpen(true); break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
-      case 'line-numbers': setLineNumbers(v => !v); break
       case 'load-theme-css': {
         const fs = fsRef.current
         if (fs) {
@@ -416,7 +428,6 @@ export default function App() {
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
-  if (lineNumbers) checkedActions.add('line-numbers')
 
   return (
     <div className="app">
@@ -455,6 +466,19 @@ export default function App() {
           settings={settings}
           onChange={setSettings}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {tableCreatorOpen && (
+        <TableCreatorDialog
+          onClose={() => setTableCreatorOpen(false)}
+          onCreate={(r, c) => {
+            setTableCreatorOpen(false)
+            const view = viewRef.current
+            if (view) {
+              insertCustomTable(r, c)(view)
+              view.focus()
+            }
+          }}
         />
       )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
