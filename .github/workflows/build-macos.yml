@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: yfmarkdown-macos
+          name: yfmd-macos
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg

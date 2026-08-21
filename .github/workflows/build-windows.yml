@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: yfmarkdown-windows
+          name: yfmd-windows
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
