@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { dirname, type FileEntry, isMarkdownFile } from '../services/file-service'
 import { t } from '../app/i18n'
 
 interface Props {
   tree: FileEntry[]
   folderPath: string | null
+  selectedPath: string | null
+  onSelect(path: string): void
   onOpenFile(path: string): void
   onNewFile(path: string): void
   onNewFolder(path: string): void
-  onRename(oldPath: string, newPath: string): void
+  onRenameRequest(path: string): void
   onDelete(path: string): void
 }
 
@@ -26,45 +28,26 @@ function uniqueName(base: string, siblings: FileEntry[]): string {
   return `${stem}-${i}${ext}`
 }
 
-interface Renaming { path: string; value: string }
 interface Menu { x: number; y: number; node: FileEntry | null }
 
 interface NodeProps {
   entry: FileEntry
-  renaming: Renaming | null
+  selectedPath: string | null
+  onSelect(path: string): void
   onOpenFile(path: string): void
   onContextMenu(e: MouseEvent, node: FileEntry): void
-  onRenameChange(value: string): void
-  onRenameCommit(): void
-  onRenameCancel(): void
 }
 
-function Node({ entry, renaming, onOpenFile, onContextMenu, onRenameChange, onRenameCommit, onRenameCancel }: NodeProps) {
+function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: NodeProps) {
   const [collapsed, setCollapsed] = useState(false)
-
-  if (renaming && renaming.path === entry.path) {
-    return (
-      <input
-        className="tree-rename"
-        autoFocus
-        value={renaming.value}
-        onFocus={e => e.target.select()}
-        onChange={e => onRenameChange(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') onRenameCommit()
-          else if (e.key === 'Escape') onRenameCancel()
-        }}
-        onBlur={onRenameCommit}
-      />
-    )
-  }
+  const selected = entry.path === selectedPath
 
   if (entry.isDir) {
     return (
       <div className="tree-node">
         <button
-          className="tree-dir"
-          onClick={() => setCollapsed(c => !c)}
+          className={'tree-dir' + (selected ? ' selected' : '')}
+          onClick={() => { onSelect(entry.path); setCollapsed(c => !c) }}
           onContextMenu={e => onContextMenu(e, entry)}
         >
           <span className="tree-arrow">{collapsed ? '▸' : '▾'}</span> {entry.name}
@@ -72,9 +55,8 @@ function Node({ entry, renaming, onOpenFile, onContextMenu, onRenameChange, onRe
         {!collapsed && (
           <div className="tree-children">
             {(entry.children ?? []).map(child => (
-              <Node key={child.path} entry={child} renaming={renaming}
-                onOpenFile={onOpenFile} onContextMenu={onContextMenu}
-                onRenameChange={onRenameChange} onRenameCommit={onRenameCommit} onRenameCancel={onRenameCancel} />
+              <Node key={child.path} entry={child} selectedPath={selectedPath}
+                onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={onContextMenu} />
             ))}
           </div>
         )}
@@ -85,8 +67,8 @@ function Node({ entry, renaming, onOpenFile, onContextMenu, onRenameChange, onRe
   const openable = isMarkdownFile(entry.name)
   return (
     <button
-      className={'tree-file' + (openable ? '' : ' tree-dim')}
-      onClick={openable ? () => onOpenFile(entry.path) : undefined}
+      className={'tree-file' + (openable ? '' : ' tree-dim') + (selected ? ' selected' : '')}
+      onClick={() => { onSelect(entry.path); if (openable) onOpenFile(entry.path) }}
       onContextMenu={e => onContextMenu(e, entry)}
       title={entry.path}
     >
@@ -95,10 +77,8 @@ function Node({ entry, renaming, onOpenFile, onContextMenu, onRenameChange, onRe
   )
 }
 
-export function FileTreePane({ tree, folderPath, onOpenFile, onNewFile, onNewFolder, onRename, onDelete }: Props) {
+export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenFile, onNewFile, onNewFolder, onRenameRequest, onDelete }: Props) {
   const [menu, setMenu] = useState<Menu | null>(null)
-  const [renaming, setRenaming] = useState<Renaming | null>(null)
-  const renameDone = useRef(false)
 
   useEffect(() => {
     const close = () => setMenu(null)
@@ -118,22 +98,6 @@ export function FileTreePane({ tree, folderPath, onOpenFile, onNewFile, onNewFol
     setMenu({ x: e.clientX, y: e.clientY, node: null })
   }
 
-  const startRename = (path: string, value: string) => {
-    renameDone.current = false
-    setRenaming({ path, value })
-  }
-
-  const commitRename = () => {
-    if (renameDone.current) return
-    renameDone.current = true
-    if (renaming) {
-      const name = renaming.value.trim()
-      const oldName = renaming.path.slice(renaming.path.lastIndexOf('/') + 1)
-      if (name && name !== oldName) onRename(renaming.path, joinPath(dirname(renaming.path), name))
-    }
-    setRenaming(null)
-  }
-
   const menuItems: { label: string; run: () => void }[] = []
   if (menu) {
     const isDir = menu.node === null || menu.node.isDir
@@ -144,7 +108,7 @@ export function FileTreePane({ tree, folderPath, onOpenFile, onNewFile, onNewFol
       menuItems.push({ label: t('sidebar.newFolder'), run: () => onNewFolder(joinPath(targetDir, uniqueName('New Folder', siblings))) })
     }
     if (menu.node !== null) {
-      menuItems.push({ label: t('sidebar.rename'), run: () => startRename(menu.node!.path, menu.node!.name) })
+      menuItems.push({ label: t('sidebar.rename'), run: () => onRenameRequest(menu.node!.path) })
       menuItems.push({ label: t('sidebar.delete'), run: () => onDelete(menu.node!.path) })
     }
   }
@@ -153,10 +117,8 @@ export function FileTreePane({ tree, folderPath, onOpenFile, onNewFile, onNewFol
     <div className="file-tree" onContextMenu={openRootMenu}>
       {tree.length === 0 && <p className="sidebar-empty">{t('sidebar.openFolder')}</p>}
       {tree.map(entry => (
-        <Node key={entry.path} entry={entry} renaming={renaming}
-          onOpenFile={onOpenFile} onContextMenu={openNodeMenu}
-          onRenameChange={v => setRenaming(r => (r ? { ...r, value: v } : r))}
-          onRenameCommit={commitRename} onRenameCancel={() => setRenaming(null)} />
+        <Node key={entry.path} entry={entry} selectedPath={selectedPath}
+          onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={openNodeMenu} />
       ))}
       {menu && (
         <div className="context-menu" style={{ left: menu.x, top: menu.y }}>

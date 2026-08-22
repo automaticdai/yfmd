@@ -6,6 +6,7 @@ import welcome from './assets/welcome.md?raw'
 import { AboutDialog } from './app/AboutDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { TableCreatorDialog } from './app/TableCreatorDialog'
+import { RenameDialog } from './app/RenameDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
 import { setLocale, t } from './app/i18n'
 import { makeImageSaver } from './app/image-saver'
@@ -62,6 +63,8 @@ export default function App() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  const [renamePath, setRenamePath] = useState<string | null>(null)
   const [outline, setOutline] = useState<OutlineItem[]>([])
   const [recent, setRecent] = useState<string[]>(() => loadRecent())
   const [stats, setStats] = useState<DocStats>(() => countDocStats(''))
@@ -287,12 +290,20 @@ export default function App() {
   // global shortcuts (file ops work even when the editor isn't focused)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Function-key shortcuts (no modifier)
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        switch (e.key) {
+          case 'F1': e.preventDefault(); setAboutOpen(true); return
+          case 'F2': e.preventDefault(); if (selectedPath) setRenamePath(selectedPath); return
+          case 'F4': e.preventDefault(); { const v = viewRef.current; if (v) openSearchPanel(v) } return
+          case 'F8': e.preventDefault(); setFocusMode(v => !v); return
+          case 'F9': e.preventDefault(); setTypewriterMode(v => !v); return
+          case 'F11': e.preventDefault(); setSidebarVisible(v => !v); return
+        }
+      }
       if (!(e.ctrlKey || e.metaKey)) return
       const key = e.key.toLowerCase()
       if (key === ',') { e.preventDefault(); setSettingsOpen(o => !o); return }
-      if (key === 'l' && e.shiftKey) { e.preventDefault(); setSidebarVisible(v => !v); return }
-      if (key === 'f' && e.shiftKey) { e.preventDefault(); setFocusMode(v => !v); return }
-      if (key === 't' && e.shiftKey) { e.preventDefault(); setTypewriterMode(v => !v); return }
       const c = controllerRef.current
       if (!c) return
       if (key === 's' && e.shiftKey) { e.preventDefault(); void c.saveAs() }
@@ -303,7 +314,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [quitApp])
+  }, [quitApp, selectedPath])
 
   const onAction = useCallback((action: string) => {
     const view = viewRef.current
@@ -439,10 +450,12 @@ export default function App() {
             folderPath={meta.folderPath}
             outline={outline}
             defaultTab={settings.sidebarTab}
+            selectedPath={selectedPath}
+            onSelect={setSelectedPath}
             onOpenFile={path => void controllerRef.current?.openPath(path)}
             onNewFile={path => void controllerRef.current?.createFile(path)}
             onNewFolder={path => void controllerRef.current?.createFolder(path)}
-            onRename={(oldPath, newPath) => void controllerRef.current?.renamePath(oldPath, newPath)}
+            onRenameRequest={setRenamePath}
             onDelete={path => void controllerRef.current?.deletePath(path)}
             onJump={pos => {
               const view = viewRef.current
@@ -482,6 +495,18 @@ export default function App() {
         />
       )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {renamePath !== null && (
+        <RenameDialog
+          name={renamePath.slice(renamePath.lastIndexOf('/') + 1)}
+          onCancel={() => setRenamePath(null)}
+          onSubmit={newName => {
+            const newPath = renamePath.slice(0, renamePath.lastIndexOf('/') + 1) + newName
+            setRenamePath(null)
+            setSelectedPath(null)
+            void controllerRef.current?.renamePath(renamePath, newPath)
+          }}
+        />
+      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   )

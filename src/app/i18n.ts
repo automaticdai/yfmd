@@ -113,6 +113,13 @@ const en = {
   'settings.autosave': 'Autosave',
   'settings.codeLineNumbers': 'Code line numbers',
   'settings.sidebarOpensOn': 'Sidebar opens on',
+  'settings.default': 'Default',
+  'settings.apply': 'Apply',
+  'settings.cancel': 'Cancel',
+
+  'rename.title': 'Rename',
+  'rename.confirm': 'Rename',
+  'rename.cancel': 'Cancel',
 
   'toast.exported': 'Exported to {path}',
   'toast.exportFailed': 'Export failed: {error}',
@@ -237,6 +244,13 @@ const zhCN: Record<MessageKey, string> = {
   'settings.autosave': '自动保存',
   'settings.codeLineNumbers': '代码行号',
   'settings.sidebarOpensOn': '侧边栏默认显示',
+  'settings.default': '恢复默认',
+  'settings.apply': '应用',
+  'settings.cancel': '取消',
+
+  'rename.title': '重命名',
+  'rename.confirm': '重命名',
+  'rename.cancel': '取消',
 
   'toast.exported': '已导出到 {path}',
   'toast.exportFailed': '导出失败：{error}',

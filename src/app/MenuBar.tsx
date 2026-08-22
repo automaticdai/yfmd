@@ -92,16 +92,16 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'hr', label: t('edit.horizontalRule') },
         { action: 'toc', label: t('edit.toc') },
         { separator: true },
-        { action: 'find', label: t('edit.findReplace'), shortcut: 'Ctrl+F' },
+        { action: 'find', label: t('edit.findReplace'), shortcut: 'F4' },
       ],
     },
     {
       title: t('menu.view'),
       items: [
-        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'Ctrl+Shift+L' },
+        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'F11' },
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
-        { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'Ctrl+Shift+F' },
-        { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'Ctrl+Shift+T' },
+        { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'F8' },
+        { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'F9' },
       ],
     },
     {
@@ -115,7 +115,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     },
     {
       title: t('menu.help'),
-      items: [{ action: 'about', label: t('help.about') }],
+      items: [{ action: 'about', label: t('help.about'), shortcut: 'F1' }],
     },
   ]
 }

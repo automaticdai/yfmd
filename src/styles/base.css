@@ -143,6 +143,7 @@ body {
 .tree-dir:hover, .tree-file:hover { background: var(--border); }
 .tree-dim { color: var(--fg-muted); cursor: default; }
 .tree-dim:hover { background: none; }
+.tree-dir.selected, .tree-file.selected { background: var(--accent); color: #fff; }
 .tree-arrow { display: inline-block; width: 1em; color: var(--fg-muted); }
 .outline-list { display: flex; flex-direction: column; }
 .outline-item {
@@ -167,6 +168,22 @@ body {
   background: var(--sidebar-bg); color: var(--fg); cursor: pointer;
 }
 .confirm-buttons button[data-choice='save'] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.rename-dialog {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1.2em 1.5em; min-width: 320px;
+}
+.rename-dialog h2 { font-size: 1.05em; margin: 0 0 0.8em; }
+.rename-input {
+  width: 100%; box-sizing: border-box; font: inherit; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg);
+}
+.rename-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1em; }
+.rename-actions button {
+  padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--sidebar-bg); color: var(--fg); cursor: pointer;
+}
+.rename-actions button[data-rename='confirm'] { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 .about-dialog {
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
@@ -222,6 +239,16 @@ body {
 }
 .settings-row input[type='checkbox'], .settings-radio input { accent-color: var(--accent); }
 .settings-radio { display: flex; align-items: center; gap: 0.3em; color: var(--fg); }
+.settings-actions {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 1em; padding-top: 0.6em; border-top: 1px solid var(--border);
+}
+.settings-actions-right { display: flex; gap: 8px; }
+.settings-actions button {
+  padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--sidebar-bg); color: var(--fg); cursor: pointer;
+}
+.settings-actions button[data-apply='true'] { background: var(--accent); color: #fff; border-color: var(--accent); }
 .context-menu {
   position: fixed; z-index: 1000; background: var(--bg); border: 1px solid var(--border);
   border-radius: 4px; padding: 4px 0; min-width: 10em;

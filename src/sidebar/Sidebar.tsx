@@ -10,15 +10,17 @@ interface Props {
   folderPath: string | null
   outline: OutlineItem[]
   defaultTab?: 'files' | 'outline'
+  selectedPath: string | null
+  onSelect(path: string): void
   onOpenFile(path: string): void
   onNewFile(path: string): void
   onNewFolder(path: string): void
-  onRename(oldPath: string, newPath: string): void
+  onRenameRequest(path: string): void
   onDelete(path: string): void
   onJump(pos: number): void
 }
 
-export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onNewFile, onNewFolder, onRename, onDelete, onJump }: Props) {
+export function Sidebar({ tree, folderPath, outline, defaultTab, selectedPath, onSelect, onOpenFile, onNewFile, onNewFolder, onRenameRequest, onDelete, onJump }: Props) {
   const [tab, setTab] = useState<'files' | 'outline'>(defaultTab ?? 'files')
   return (
     <aside className="sidebar">
@@ -39,8 +41,9 @@ export function Sidebar({ tree, folderPath, outline, defaultTab, onOpenFile, onN
           <>
             {folderPath && <div className="sidebar-folder" title={folderPath}>{folderPath}</div>}
             <FileTreePane tree={tree ?? []} folderPath={folderPath}
-              onOpenFile={onOpenFile} onNewFile={onNewFile} onNewFolder={onNewFolder}
-              onRename={onRename} onDelete={onDelete} />
+              selectedPath={selectedPath} onSelect={onSelect} onOpenFile={onOpenFile}
+              onNewFile={onNewFile} onNewFolder={onNewFolder}
+              onRenameRequest={onRenameRequest} onDelete={onDelete} />
           </>
         ) : (
           <OutlinePane outline={outline} onJump={onJump} />

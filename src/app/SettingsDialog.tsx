@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { BODY_FONTS, CODE_FONTS, type FontOption, fontStack } from './fonts'
 import { LOCALES, t, type Locale } from './i18n'
-import { SETTINGS_LIMITS, THEMES, type Settings } from './settings'
+import { DEFAULT_SETTINGS, SETTINGS_LIMITS, THEMES, type Settings } from './settings'
 
 interface Props {
   settings: Settings
@@ -70,6 +70,8 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     onChange({ ...settings, [key]: value })
   const L = SETTINGS_LIMITS
+  // Snapshot of the applied settings when the dialog opened, so Cancel can revert.
+  const initial = useRef(settings).current
 
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -148,6 +150,13 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
               </label>
             ))}
           </span>
+        </div>
+        <div className="settings-actions">
+          <button onClick={() => onChange(DEFAULT_SETTINGS)}>{t('settings.default')}</button>
+          <div className="settings-actions-right">
+            <button onClick={() => { onChange(initial); onClose() }}>{t('settings.cancel')}</button>
+            <button data-apply="true" onClick={onClose}>{t('settings.apply')}</button>
+          </div>
         </div>
       </div>
     </div>
