@@ -1,6 +1,6 @@
 # Welcome to yfmd
 
-A **Typora-style** markdown editor: what you type renders *in place*, and the block your cursor touches reveals its raw markdown syntax.
+A **WYSIWYG** markdown editor: what you type renders *in place*, and the block your cursor touches reveals its raw markdown syntax.
 
 ---
 

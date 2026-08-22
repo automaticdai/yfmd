@@ -75,7 +75,7 @@ const en = {
 
   'help.about': 'About yfmd',
   'about.version': 'Version',
-  'about.tagline': 'A Typora-style markdown editor',
+  'about.tagline': 'A WYSIWYG markdown editor',
   'about.license': 'License',
   'about.close': 'Close',
 
@@ -206,7 +206,7 @@ const zhCN: Record<MessageKey, string> = {
 
   'help.about': '关于 yfmd',
   'about.version': '版本',
-  'about.tagline': '一款 Typora 风格的 Markdown 编辑器',
+  'about.tagline': '一款所见即所得的 Markdown 编辑器',
   'about.license': '许可证',
   'about.close': '关闭',
 

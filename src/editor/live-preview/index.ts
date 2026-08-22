@@ -9,7 +9,7 @@ export interface LivePreviewOptions {
   openExternal(url: string): void
 }
 
-/** The full Typora-mode bundle. Source mode = reconfiguring the compartment to []. */
+/** The full live-preview bundle. Source mode = reconfiguring the compartment to []. */
 export function livePreviewExtensions(opts: LivePreviewOptions): Extension[] {
   return [inlineDecorations, taskListExtension, widgetField, tableAutoFormat, linkClick(opts.openExternal)]
 }

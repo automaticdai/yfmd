@@ -1,6 +1,6 @@
 # yfmd
 
-A Typora-style markdown editor for the desktop, built with Tauri 2 and CodeMirror 6.
+A WYSIWYG markdown editor for the desktop, built with Tauri 2 and CodeMirror 6.
 What you type renders in place — headings, bold, math, diagrams, tables — and the
 block your cursor touches reveals its raw markdown syntax for editing.
 

@@ -1,11 +1,11 @@
-# yfmd — Typora-style Markdown Editor: Design Spec
+# yfmd — WYSIWYG Markdown Editor: Design Spec
 
 **Date:** 2026-07-17
 **Status:** Approved by user
 
 ## Purpose
 
-A desktop markdown editor/viewer modeled on Typora: a single-pane WYSIWYG
+A desktop markdown editor/viewer: a single-pane WYSIWYG
 editing experience where markdown renders in place as you type, and the raw
 syntax of whatever the cursor touches is revealed for editing. The file on
 disk is always exactly what the user typed — the app never reformats or
@@ -27,7 +27,7 @@ The markdown text (the CodeMirror document) is the single source of truth.
 All rendering — hidden syntax markers, widgets, tables — is presentation
 layered on top via decorations. Saving writes the document text verbatim.
 
-## Editor Core (the Typora behavior)
+## Editor Core (WYSIWYG behavior)
 
 ### Inline elements
 
@@ -78,7 +78,7 @@ highlighting) and back on.
 
 ## App Shell
 
-- **Single document** open at a time (like Typora — no tab bar).
+- **Single document** open at a time (no tab bar).
 - **Sidebar** with two tabs:
   - **Files:** open a folder, browse its tree, click a markdown file to open
     it. Non-markdown files listed but dimmed/unopenable.
@@ -95,8 +95,8 @@ highlighting) and back on.
     CodeMirror's search panel, restyled to match the app.
   - View: toggle sidebar, source mode (Ctrl+/), theme toggle.
 - **Themes:** light and dark, CSS-variable based, defaulting to the system
-  preference with a manual toggle. Typography modeled on Typora's default
-  theme (comfortable measure, generous line height, serif-optional headings).
+  preference with a manual toggle. Typography with a comfortable measure,
+  generous line height, and serif-optional headings.
 
 ## Export
 

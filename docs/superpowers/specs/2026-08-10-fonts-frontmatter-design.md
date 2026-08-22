@@ -119,7 +119,7 @@ only hide a closing fence, never invent one — so a keystroke never rescans a l
 file.
 
 Accepted ambiguity: a document that legitimately opens with a thematic break, text,
-and a Setext underline now reads as frontmatter. Typora, Obsidian and Jekyll all
+and a Setext underline now reads as frontmatter. Obsidian and Jekyll all
 behave this way.
 
 ### Rendering

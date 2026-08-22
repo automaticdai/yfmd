@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Tauri 2 desktop markdown editor with Typora-style in-place WYSIWYG editing (syntax reveals at the cursor), sidebar file tree + outline, HTML/PDF export, and light/dark themes.
+**Goal:** Build a Tauri 2 desktop markdown editor with in-place WYSIWYG editing (syntax reveals at the cursor), sidebar file tree + outline, HTML/PDF export, and light/dark themes.
 
 **Architecture:** CodeMirror 6 is the editor; the raw markdown text is the single source of truth. A "live preview" layer (a ViewPlugin for syntax-mark hiding + a StateField for rendered widgets) decorates the document; decorations never modify the text. The React shell (menubar, sidebar, status bar) talks to files only through a `FileService` interface with a browser implementation (dev/tests) and a Tauri implementation (production). Export uses a separate markdown-it pipeline.
 
@@ -261,7 +261,7 @@ body {
 ````markdown
 # Welcome to yfmd
 
-A **Typora-style** markdown editor: what you type renders *in place*, and the
+A **WYSIWYG** markdown editor: what you type renders *in place*, and the
 block your cursor touches reveals its raw ~~text~~ syntax.
 
 ## Features
@@ -736,7 +736,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
 }
 ```
 
-`src/styles/editor.css` (Typora-ish typography; widget styles used by later tasks included now so they land once):
+`src/styles/editor.css` (editor typography; widget styles used by later tasks included now so they land once):
 
 ```css
 .cm-editor { height: 100%; background: var(--bg); color: var(--fg); }
@@ -898,7 +898,7 @@ git commit -m "feat: mount CodeMirror 6 markdown editor with highlighting and ty
 
 ---
 
-### Task 4: Cursor context + inline mark hiding (the Typora reveal behavior)
+### Task 4: Cursor context + inline mark hiding (the cursor reveal behavior)
 
 **Files:**
 - Create: `src/editor/live-preview/cursor-context.ts`, `src/editor/live-preview/inline-decorations.ts`, `src/editor/live-preview/index.ts`, `src/editor/live-preview/inline-decorations.test.ts`
@@ -1180,7 +1180,7 @@ export const inlineDecorations = ViewPlugin.fromClass(
 import type { Extension } from '@codemirror/state'
 import { inlineDecorations } from './inline-decorations'
 
-/** The full Typora-mode bundle. Source mode = reconfiguring the compartment to []. */
+/** The full live-preview bundle. Source mode = reconfiguring the compartment to []. */
 export function livePreviewExtensions(): Extension[] {
   return [inlineDecorations]
 }
@@ -1400,7 +1400,7 @@ export interface LivePreviewOptions {
   openExternal(url: string): void
 }
 
-/** The full Typora-mode bundle. Source mode = reconfiguring the compartment to []. */
+/** The full live-preview bundle. Source mode = reconfiguring the compartment to []. */
 export function livePreviewExtensions(opts: LivePreviewOptions): Extension[] {
   return [inlineDecorations, taskListExtension, linkClick(opts.openExternal)]
 }
@@ -4290,7 +4290,7 @@ Expected: all tests pass. Debug failures with `npx playwright test --headed` / t
 
 - [ ] **Step 4: Write README.md**
 
-Cover: what it is (Typora-style editor built on Tauri 2 + CodeMirror 6), screenshot placeholder, features list (live WYSIWYG, math, mermaid, tables, sidebar, export, themes), dev commands (`npm install`, `npm run dev` browser mode, `npm run tauri dev` desktop, `npm test`, `npm run e2e`), Linux/WSL prerequisites for Tauri (rustup, webkit2gtk-4.1), architecture paragraph (markdown text is the source of truth; decorations layered on top), license note (choose MIT).
+Cover: what it is (WYSIWYG editor built on Tauri 2 + CodeMirror 6), screenshot placeholder, features list (live WYSIWYG, math, mermaid, tables, sidebar, export, themes), dev commands (`npm install`, `npm run dev` browser mode, `npm run tauri dev` desktop, `npm test`, `npm run e2e`), Linux/WSL prerequisites for Tauri (rustup, webkit2gtk-4.1), architecture paragraph (markdown text is the source of truth; decorations layered on top), license note (choose MIT).
 
 - [ ] **Step 5: Full verification + commit**
 
