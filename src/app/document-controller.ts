@@ -80,11 +80,16 @@ export class DocumentController {
   }
 
   async openFolderViaDialog(): Promise<void> {
+    const folder = await this.fs.openFolderDialog()
+    if (!folder) return
+    await this.openFolderPath(folder.path)
+  }
+
+  async openFolderPath(path: string): Promise<void> {
     try {
-      const folder = await this.fs.openFolderDialog()
-      if (!folder) return
-      this.meta.folderPath = folder.path
-      this.meta.tree = folder.tree
+      const tree = await this.fs.listFolder(path)
+      this.meta.folderPath = path
+      this.meta.tree = tree
       this.emit()
     } catch (err) {
       this.host.notify(t('toast.openFolderFailed', { error: err instanceof Error ? err.message : String(err) }))

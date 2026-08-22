@@ -47,6 +47,12 @@ function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: Node
       <div className="tree-node">
         <button
           className={'tree-dir' + (selected ? ' selected' : '')}
+          draggable
+          onDragStart={e => {
+            e.dataTransfer.setData('application/x-yfmd-path', entry.path)
+            e.dataTransfer.setData('application/x-yfmd-kind', 'dir')
+            e.dataTransfer.effectAllowed = 'copy'
+          }}
           onClick={() => { onSelect(entry.path); setCollapsed(c => !c) }}
           onContextMenu={e => onContextMenu(e, entry)}
         >
@@ -68,6 +74,12 @@ function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: Node
   return (
     <button
       className={'tree-file' + (openable ? '' : ' tree-dim') + (selected ? ' selected' : '')}
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData('application/x-yfmd-path', entry.path)
+        e.dataTransfer.setData('application/x-yfmd-kind', 'file')
+        e.dataTransfer.effectAllowed = 'copy'
+      }}
       onClick={() => { onSelect(entry.path); if (openable) onOpenFile(entry.path) }}
       onContextMenu={e => onContextMenu(e, entry)}
       title={entry.path}

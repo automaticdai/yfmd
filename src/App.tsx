@@ -287,6 +287,31 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [])
 
+  // OS file/folder drop onto the window (Tauri native)
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    void Promise.all([
+      import('@tauri-apps/api/webview'),
+      import('@tauri-apps/plugin-fs'),
+    ]).then(([{ getCurrentWebview }, { stat }]) => {
+      void getCurrentWebview().onDragDropEvent(event => {
+        if (disposed || event.payload.type !== 'drop') return
+        const path = event.payload.paths[0]
+        const c = controllerRef.current
+        if (!path || !c) return
+        stat(path)
+          .then(info => (info.isDirectory ? c.openFolderPath(path) : c.openPath(path)))
+          .catch(() => c.openPath(path))
+      }).then(fn => {
+        if (disposed) fn()
+        else unlisten = fn
+      })
+    })
+    return () => { disposed = true; unlisten?.() }
+  }, [])
+
   // global shortcuts (file ops work even when the editor isn't focused)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -465,7 +490,25 @@ export default function App() {
             }}
           />
         )}
-        <main className="editor-pane"><div ref={hostRef} style={{ height: '100%' }} /></main>
+        <main
+          className="editor-pane"
+          onDragOver={e => {
+            if (e.dataTransfer.types.includes('application/x-yfmd-path')) {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'copy'
+            }
+          }}
+          onDrop={e => {
+            const path = e.dataTransfer.getData('application/x-yfmd-path')
+            if (!path) return
+            if (e.dataTransfer.getData('application/x-yfmd-kind') === 'dir')
+              void controllerRef.current?.openFolderPath(path)
+            else
+              void controllerRef.current?.openPath(path)
+          }}
+        >
+          <div ref={hostRef} style={{ height: '100%' }} />
+        </main>
       </div>
       <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} stats={stats} />
       {confirmOpen && (

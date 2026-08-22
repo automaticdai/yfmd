@@ -69,6 +69,13 @@ describe('DocumentController', () => {
     expect(h.controller.meta.folderPath).toBe('/notes')
     expect(h.controller.meta.tree!.map(e => e.name)).toEqual(['x.md'])
   })
+  it('opens a folder by path into meta', async () => {
+    const h = harness()
+    await h.fs.writeFile('/notes/x.md', 'x')
+    await h.controller.openFolderPath('/notes')
+    expect(h.controller.meta.folderPath).toBe('/notes')
+    expect(h.controller.meta.tree!.map(e => e.name)).toEqual(['x.md'])
+  })
   it('creates a file in the open folder and refreshes the tree', async () => {
     const h = harness()
     await h.fs.writeFile('/notes/x.md', 'x')
