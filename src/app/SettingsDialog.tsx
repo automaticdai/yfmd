@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BODY_FONTS, CODE_FONTS, type FontOption, fontStack } from './fonts'
 import { LOCALES, t, type Locale } from './i18n'
 import { DEFAULT_SETTINGS, SETTINGS_LIMITS, THEMES, type Settings } from './settings'
@@ -8,6 +8,8 @@ interface Props {
   onChange(next: Settings): void
   onClose(): void
 }
+
+type Tab = 'general' | 'layout' | 'appearance'
 
 function SliderRow({ label, setting, value, unit, min, max, step, onInput }: {
   label: string
@@ -61,6 +63,8 @@ function FontRow({ label, setting, fonts, value, onPick }: {
 }
 
 export function SettingsDialog({ settings, onChange, onClose }: Props) {
+  const [tab, setTab] = useState<Tab>('general')
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -73,6 +77,12 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
   // Snapshot of the applied settings when the dialog opened, so Cancel can revert.
   const initial = useRef(settings).current
 
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'general', label: t('settings.general') },
+    { id: 'layout', label: t('settings.layout') },
+    { id: 'appearance', label: t('settings.appearance') },
+  ]
+
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="settings-dialog">
@@ -80,77 +90,107 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
           <h2>{t('settings.title')}</h2>
           <button className="settings-close" onClick={onClose} aria-label="Close">×</button>
         </div>
-        <label className="settings-row">
-          <span>{t('settings.theme')}</span>
-          <select
-            data-setting="theme"
-            value={settings.theme}
-            onChange={e => set('theme', e.target.value as Settings['theme'])}
-          >
-            {THEMES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-          </select>
-        </label>
-        <label className="settings-row">
-          <span>{t('settings.language')}</span>
-          <select
-            data-setting="language"
-            value={settings.language}
-            onChange={e => set('language', e.target.value as Locale)}
-          >
-            {LOCALES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
-          </select>
-        </label>
-        <FontRow label={t('settings.editorFont')} setting="bodyFont" fonts={BODY_FONTS}
-          value={settings.bodyFont} onPick={id => set('bodyFont', id)} />
-        <FontRow label={t('settings.codeFont')} setting="codeFont" fonts={CODE_FONTS}
-          value={settings.codeFont} onPick={id => set('codeFont', id)} />
-        <SliderRow label={t('settings.maxWidth')} setting="maxWidth" value={settings.maxWidth} unit="rem"
-          min={L.maxWidth.min} max={L.maxWidth.max} step={L.maxWidth.step}
-          onInput={v => set('maxWidth', v)} />
-        <SliderRow label={t('settings.sideMargin')} setting="sideMargin" value={settings.sideMargin} unit="rem"
-          min={L.sideMargin.min} max={L.sideMargin.max} step={L.sideMargin.step}
-          onInput={v => set('sideMargin', v)} />
-        <SliderRow label={t('settings.fontSize')} setting="fontSize" value={settings.fontSize} unit="px"
-          min={L.fontSize.min} max={L.fontSize.max} step={L.fontSize.step}
-          onInput={v => set('fontSize', v)} />
-        <SliderRow label={t('settings.lineHeight')} setting="lineHeight" value={settings.lineHeight} unit=""
-          min={L.lineHeight.min} max={L.lineHeight.max} step={L.lineHeight.step}
-          onInput={v => set('lineHeight', v)} />
-        <label className="settings-row">
-          <span>{t('settings.autosave')}</span>
-          <input
-            type="checkbox"
-            data-setting="autosave"
-            checked={settings.autosave}
-            onChange={e => set('autosave', e.target.checked)}
-          />
-        </label>
-        <label className="settings-row">
-          <span>{t('settings.codeLineNumbers')}</span>
-          <input
-            type="checkbox"
-            data-setting="codeLineNumbers"
-            checked={settings.codeLineNumbers}
-            onChange={e => set('codeLineNumbers', e.target.checked)}
-          />
-        </label>
-        <div className="settings-row">
-          <span>{t('settings.sidebarOpensOn')}</span>
-          <span className="settings-control">
-            {(['files', 'outline'] as const).map(tab => (
-              <label key={tab} className="settings-radio">
-                <input
-                  type="radio"
-                  name="sidebar-tab"
-                  data-setting={`sidebarTab-${tab}`}
-                  checked={settings.sidebarTab === tab}
-                  onChange={() => set('sidebarTab', tab)}
-                />
-                {tab === 'files' ? t('sidebar.files') : t('sidebar.outline')}
-              </label>
-            ))}
-          </span>
+        <div className="settings-tabs" role="tablist">
+          {tabs.map(tb => (
+            <button
+              key={tb.id}
+              role="tab"
+              aria-selected={tab === tb.id}
+              className={'settings-tab' + (tab === tb.id ? ' active' : '')}
+              data-tab={tb.id}
+              onClick={() => setTab(tb.id)}
+            >
+              {tb.label}
+            </button>
+          ))}
         </div>
+
+        {tab === 'general' && (
+          <div className="settings-panel" role="tabpanel">
+            <label className="settings-row">
+              <span>{t('settings.language')}</span>
+              <select
+                data-setting="language"
+                value={settings.language}
+                onChange={e => set('language', e.target.value as Locale)}
+              >
+                {LOCALES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+              </select>
+            </label>
+            <label className="settings-row">
+              <span>{t('settings.autosave')}</span>
+              <input
+                type="checkbox"
+                data-setting="autosave"
+                checked={settings.autosave}
+                onChange={e => set('autosave', e.target.checked)}
+              />
+            </label>
+            <label className="settings-row">
+              <span>{t('settings.codeLineNumbers')}</span>
+              <input
+                type="checkbox"
+                data-setting="codeLineNumbers"
+                checked={settings.codeLineNumbers}
+                onChange={e => set('codeLineNumbers', e.target.checked)}
+              />
+            </label>
+            <div className="settings-row">
+              <span>{t('settings.sidebarOpensOn')}</span>
+              <span className="settings-control">
+                {(['files', 'outline'] as const).map(tab => (
+                  <label key={tab} className="settings-radio">
+                    <input
+                      type="radio"
+                      name="sidebar-tab"
+                      data-setting={`sidebarTab-${tab}`}
+                      checked={settings.sidebarTab === tab}
+                      onChange={() => set('sidebarTab', tab)}
+                    />
+                    {tab === 'files' ? t('sidebar.files') : t('sidebar.outline')}
+                  </label>
+                ))}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {tab === 'layout' && (
+          <div className="settings-panel" role="tabpanel">
+            <SliderRow label={t('settings.maxWidth')} setting="maxWidth" value={settings.maxWidth} unit="rem"
+              min={L.maxWidth.min} max={L.maxWidth.max} step={L.maxWidth.step}
+              onInput={v => set('maxWidth', v)} />
+            <SliderRow label={t('settings.sideMargin')} setting="sideMargin" value={settings.sideMargin} unit="rem"
+              min={L.sideMargin.min} max={L.sideMargin.max} step={L.sideMargin.step}
+              onInput={v => set('sideMargin', v)} />
+          </div>
+        )}
+
+        {tab === 'appearance' && (
+          <div className="settings-panel" role="tabpanel">
+            <label className="settings-row">
+              <span>{t('settings.theme')}</span>
+              <select
+                data-setting="theme"
+                value={settings.theme}
+                onChange={e => set('theme', e.target.value as Settings['theme'])}
+              >
+                {THEMES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </label>
+            <FontRow label={t('settings.editorFont')} setting="bodyFont" fonts={BODY_FONTS}
+              value={settings.bodyFont} onPick={id => set('bodyFont', id)} />
+            <FontRow label={t('settings.codeFont')} setting="codeFont" fonts={CODE_FONTS}
+              value={settings.codeFont} onPick={id => set('codeFont', id)} />
+            <SliderRow label={t('settings.fontSize')} setting="fontSize" value={settings.fontSize} unit="px"
+              min={L.fontSize.min} max={L.fontSize.max} step={L.fontSize.step}
+              onInput={v => set('fontSize', v)} />
+            <SliderRow label={t('settings.lineHeight')} setting="lineHeight" value={settings.lineHeight} unit=""
+              min={L.lineHeight.min} max={L.lineHeight.max} step={L.lineHeight.step}
+              onInput={v => set('lineHeight', v)} />
+          </div>
+        )}
+
         <div className="settings-actions">
           <button onClick={() => onChange(DEFAULT_SETTINGS)}>{t('settings.default')}</button>
           <div className="settings-actions-right">

@@ -1,19 +1,19 @@
 import { expect, test } from '@playwright/test'
 import { docText, menuAction, openApp, setDoc } from './helpers'
 
-test('sidebar is hidden by default and Ctrl+Shift+L toggles it', async ({ page }) => {
+test('sidebar is hidden by default and F11 toggles it', async ({ page }) => {
   await openApp(page)
   await expect(page.locator('.sidebar')).toHaveCount(0)
-  await page.keyboard.press('Control+Shift+L')
+  await page.keyboard.press('F11')
   await expect(page.locator('.sidebar')).toBeVisible()
-  await page.keyboard.press('Control+Shift+L')
+  await page.keyboard.press('F11')
   await expect(page.locator('.sidebar')).toHaveCount(0)
 })
 
 test('outline lists headings and jumps on click', async ({ page }) => {
   await openApp(page)
   await setDoc(page, '# One\n\ntext\n\n## Two\n\nmore')
-  await page.keyboard.press('Control+Shift+L')
+  await page.keyboard.press('F11')
   await page.locator('.sidebar-tab[data-tab="outline"]').click()
   await expect(page.locator('.outline-item')).toHaveCount(2)
   await page.locator('.outline-item', { hasText: 'Two' }).click()
@@ -40,6 +40,7 @@ test('settings dialog changes the editor and code fonts, and persists them', asy
   await openApp(page)
   await setDoc(page, 'plain text\n\n```js\nlet x = 1\n```\n')
   await menuAction(page, 'File', 'settings')
+  await page.locator('.settings-tab[data-tab="appearance"]').click()
   await page.locator('[data-setting="bodyFont"]').selectOption('georgia')
   await page.locator('[data-setting="codeFont"]').selectOption('courier')
 
@@ -61,6 +62,7 @@ test('settings dialog changes the editor and code fonts, and persists them', asy
 test('"follow theme" hands the editor font back to the theme', async ({ page }) => {
   await openApp(page)
   await menuAction(page, 'File', 'settings')
+  await page.locator('.settings-tab[data-tab="appearance"]').click()
   await page.locator('[data-setting="bodyFont"]').selectOption('verdana')
   await page.locator('[data-setting="theme"]').selectOption('newsprint')
   const bodyFont = () => page.evaluate(() =>
@@ -77,6 +79,7 @@ test('settings dialog changes text width live and persists', async ({ page }) =>
   await openApp(page)
   await menuAction(page, 'File', 'settings')
   await expect(page.locator('.settings-dialog')).toBeVisible()
+  await page.locator('.settings-tab[data-tab="layout"]').click()
   await page.locator('[data-setting="maxWidth"]').evaluate((el, v) => {
     const input = el as HTMLInputElement
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!

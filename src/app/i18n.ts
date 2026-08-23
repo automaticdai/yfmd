@@ -108,6 +108,9 @@ const en = {
   'outline.untitled': '(untitled)',
 
   'settings.title': 'Settings',
+  'settings.general': 'General',
+  'settings.layout': 'Layout',
+  'settings.appearance': 'Appearance',
   'settings.theme': 'Theme',
   'settings.language': 'Language',
   'settings.editorFont': 'Editor font',
@@ -245,6 +248,9 @@ const zhCN: Record<MessageKey, string> = {
   'outline.untitled': '（未命名）',
 
   'settings.title': '设置',
+  'settings.general': '通用',
+  'settings.layout': '布局',
+  'settings.appearance': '外观',
   'settings.theme': '主题',
   'settings.language': '语言',
   'settings.editorFont': '编辑器字体',
