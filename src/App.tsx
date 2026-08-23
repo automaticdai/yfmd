@@ -46,6 +46,7 @@ export default function App() {
   const controllerRef = useRef<DocumentController | null>(null)
   const confirmResolve = useRef<((r: ConfirmResult) => void) | null>(null)
   const saverRef = useRef<ReturnType<typeof makeImageSaver>>(async () => null)
+  const pendingOpenRef = useRef<string | null>(null)
 
   const [meta, setMeta] = useState<DocMeta>({ path: null, dirty: false, folderPath: null, tree: null })
   const [sourceMode, setSourceMode] = useState(false)
@@ -196,10 +197,38 @@ export default function App() {
       saverRef.current = saver
       view.dispatch({ effects: [imageSaverCompartment.reconfigure(imageSaver.of(saver))] })
       controllerRef.current = controller
+      const pending = pendingOpenRef.current
+      pendingOpenRef.current = null
+      if (pending) void controller.openPath(pending)
     })
 
     return () => { disposed = true; view.destroy(); viewRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // File association: open a .md passed on launch (cold) or via a second instance (warm).
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    const open = (path: string) => {
+      const c = controllerRef.current
+      if (c) void c.openPath(path)
+      else pendingOpenRef.current = path
+    }
+    void Promise.all([
+      import('@tauri-apps/api/event'),
+      import('@tauri-apps/api/core'),
+    ]).then(([{ listen }, { invoke }]) => {
+      void listen<string>('open-file', e => open(e.payload)).then(fn => {
+        if (disposed) fn()
+        else unlisten = fn
+      })
+      void invoke<string | null>('get_launch_file').then(path => {
+        if (path) open(path)
+      })
+    })
+    return () => { disposed = true; unlisten?.() }
   }, [])
 
   // apply + persist settings whenever they change (also on first mount, after the editor exists)

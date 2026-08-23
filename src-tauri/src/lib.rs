@@ -1,3 +1,5 @@
+use tauri::Emitter;
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Entry {
@@ -54,13 +56,34 @@ fn list_dir(path: String) -> Result<Vec<Entry>, String> {
     Ok(read_dir_recursive(&p, 0))
 }
 
+// File path the OS passed on launch (cold start via file association).
+struct LaunchState(std::sync::Mutex<Option<String>>);
+
+/// Returns (and clears) the file path the app was launched with, if any.
+#[tauri::command]
+fn get_launch_file(state: tauri::State<'_, LaunchState>) -> Option<String> {
+    state.0.lock().ok().and_then(|mut g| g.take())
+}
+
+/// First non-flag argv entry (skips the program path and macOS-style `-…` flags).
+fn first_file_arg(args: impl Iterator<Item = String>) -> Option<String> {
+    args.skip(1).find(|a| !a.starts_with('-'))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![list_dir])
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Warm launch: forward the newly-opened file to the running window.
+            if let Some(path) = first_file_arg(argv.into_iter()) {
+                let _ = app.emit("open-file", path);
+            }
+        }))
+        .manage(LaunchState(std::sync::Mutex::new(first_file_arg(std::env::args()))))
+        .invoke_handler(tauri::generate_handler![list_dir, get_launch_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
