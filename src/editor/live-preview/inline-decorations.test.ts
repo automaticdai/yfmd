@@ -64,6 +64,15 @@ describe('selectionTouches', () => {
     expect(selectionTouches(s, 3, 6)).toBe(true)
     expect(selectionTouches(s, 4, 6)).toBe(false)
   })
+  it('does not reveal for a range selection', () => {
+    const s = EditorState.create({
+      doc: 'abcdef',
+      selection: EditorSelection.range(1, 5),
+      extensions: [markdown({ base: markdownLanguage })],
+    })
+    expect(selectionTouches(s, 0, 3)).toBe(false)
+    expect(selectionTouches(s, 3, 6)).toBe(false)
+  })
 })
 
 describe('inline mark hiding', () => {

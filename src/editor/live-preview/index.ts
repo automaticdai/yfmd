@@ -1,4 +1,5 @@
 import type { Extension } from '@codemirror/state'
+import { markdownExtensionsField } from '../markdown-extensions'
 import { docAnalysisField } from './analysis'
 import { inlineDecorations } from './inline-decorations'
 import { linkClick } from './link-click'
@@ -12,5 +13,5 @@ export interface LivePreviewOptions {
 
 /** The full live-preview bundle. Source mode = reconfiguring the compartment to []. */
 export function livePreviewExtensions(opts: LivePreviewOptions): Extension[] {
-  return [docAnalysisField, inlineDecorations, taskListExtension, widgetField, tableAutoFormat, linkClick(opts.openExternal)]
+  return [docAnalysisField, markdownExtensionsField, inlineDecorations, taskListExtension, widgetField, tableAutoFormat, linkClick(opts.openExternal)]
 }

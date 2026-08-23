@@ -1,6 +1,7 @@
-import type { EditorState } from '@codemirror/state'
-import { RangeSetBuilder, StateField } from '@codemirror/state'
+import type { EditorState, Range } from '@codemirror/state'
+import { StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
+import { selectionTouches } from './live-preview/cursor-context'
 import { getExtensions } from './live-preview/analysis'
 import { EMOJI, type ExtMatch } from './live-preview/extensions'
 
@@ -18,27 +19,62 @@ class EmojiWidget extends WidgetType {
   ignoreEvent() { return true }
 }
 
-function buildExtensionDecorations(matches: ExtMatch[], state: EditorState): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>()
+/** A decoration that reveals its source when the cursor touches its guard range. */
+interface Revealable { deco: Range<Decoration>; guardFrom: number; guardTo: number }
+
+interface ExtensionStructure {
+  staticDeco: Range<Decoration>[]
+  revealable: Revealable[]
+}
+
+function buildExtensionStructure(matches: ExtMatch[], state: EditorState): ExtensionStructure {
+  const staticDeco: Range<Decoration>[] = []
+  const revealable: Revealable[] = []
   const hide = Decoration.replace({})
   for (const m of matches) {
     if (m.kind === 'emoji') {
       const char = EMOJI[state.sliceDoc(m.innerFrom, m.innerTo)]
-      if (char) builder.add(m.from, m.to, Decoration.replace({ widget: new EmojiWidget(char) }))
+      if (char) {
+        revealable.push({
+          deco: Decoration.replace({ widget: new EmojiWidget(char) }).range(m.from, m.to),
+          guardFrom: m.from,
+          guardTo: m.to,
+        })
+      }
       continue
     }
-    builder.add(m.from, m.innerFrom, hide)
-    builder.add(m.innerFrom, m.innerTo, Decoration.mark({ class: m.kind === 'mark' ? 'cm-mark' : m.kind === 'sup' ? 'cm-sup' : 'cm-sub' }))
-    builder.add(m.innerTo, m.to, hide)
+    const cls = m.kind === 'mark' ? 'cm-mark' : m.kind === 'sup' ? 'cm-sup' : 'cm-sub'
+    revealable.push({ deco: hide.range(m.from, m.innerFrom), guardFrom: m.from, guardTo: m.to })
+    staticDeco.push(Decoration.mark({ class: cls }).range(m.innerFrom, m.innerTo))
+    revealable.push({ deco: hide.range(m.innerTo, m.to), guardFrom: m.from, guardTo: m.to })
   }
-  return builder.finish()
+  return { staticDeco, revealable }
 }
 
-export const markdownExtensionsField = StateField.define<DecorationSet>({
-  create: state => buildExtensionDecorations(getExtensions(state), state),
-  update(deco, tr) {
-    if (tr.docChanged) return buildExtensionDecorations(getExtensions(tr.state), tr.state)
-    return deco.map(tr.changes)
+function applyExtensionSelection(structure: ExtensionStructure, state: EditorState): DecorationSet {
+  const ranges: Range<Decoration>[] = [...structure.staticDeco]
+  for (const r of structure.revealable) {
+    if (!selectionTouches(state, r.guardFrom, r.guardTo)) ranges.push(r.deco)
+  }
+  return Decoration.set(ranges, true)
+}
+
+interface FieldValue { structure: ExtensionStructure; decorations: DecorationSet }
+
+export const markdownExtensionsField = StateField.define<FieldValue>({
+  create: state => {
+    const structure = buildExtensionStructure(getExtensions(state), state)
+    return { structure, decorations: applyExtensionSelection(structure, state) }
   },
-  provide: f => EditorView.decorations.from(f),
+  update(value, tr) {
+    if (tr.docChanged) {
+      const structure = buildExtensionStructure(getExtensions(tr.state), tr.state)
+      return { structure, decorations: applyExtensionSelection(structure, tr.state) }
+    }
+    if (!tr.startState.selection.eq(tr.state.selection)) {
+      return { structure: value.structure, decorations: applyExtensionSelection(value.structure, tr.state) }
+    }
+    return value
+  },
+  provide: f => EditorView.decorations.from(f, value => value.decorations),
 })
