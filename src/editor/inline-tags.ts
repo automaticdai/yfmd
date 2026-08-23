@@ -5,19 +5,18 @@ import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 
-import { findMathRanges } from './live-preview/math'
+import { getMathRanges } from './live-preview/analysis'
+import type { MathRange } from './live-preview/math'
 
 const TAG = /(^|[\s(])(#[\p{L}\p{N}_][\p{L}\p{N}_-]*)/gu
 
-function inCodeOrHeading(state: EditorState, pos: number): boolean {
+function inCodeOrHeading(state: EditorState, pos: number, mathRanges: MathRange[]): boolean {
   for (let n: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1); n; n = n.parent) {
     const name = n.name
     if (name === 'FencedCode' || name === 'CodeBlock' || name === 'InlineCode' ||
         /^ATXHeading/.test(name) || /^SetextHeading/.test(name)) return true
   }
-  const mathRanges = findMathRanges(state)
-  if (mathRanges.some(m => pos >= m.from && pos <= m.to)) return true
-  return false
+  return mathRanges.some(m => pos >= m.from && pos <= m.to)
 }
 
 export interface TagRange { from: number; to: number; text: string }
@@ -26,12 +25,13 @@ export interface TagRange { from: number; to: number; text: string }
 export function findTags(state: EditorState): TagRange[] {
   const out: TagRange[] = []
   const text = state.doc.toString()
+  const mathRanges = getMathRanges(state)
   TAG.lastIndex = 0
   let m: RegExpExecArray | null
   while ((m = TAG.exec(text))) {
     const from = m.index + m[1].length
     const to = from + m[2].length
-    if (inCodeOrHeading(state, from + 1)) continue
+    if (inCodeOrHeading(state, from + 1, mathRanges)) continue
     out.push({ from, to, text: m[2] })
   }
   return out

@@ -2,8 +2,8 @@ import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Range } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import { frontmatterRange, insideFrontmatter } from '../frontmatter'
-import { selectionTouches, selectionTouchesLine } from './cursor-context'
-import { findMathRanges } from './math'
+import { selectionTouches } from './cursor-context'
+import { getMathRanges } from './analysis'
 
 import { WidgetType } from '@codemirror/view'
 
@@ -62,38 +62,55 @@ const LINK_TEXT = Decoration.mark({ class: 'cm-link-text' })
 
 const INLINE_PARENTS = new Set(['Emphasis', 'StrongEmphasis', 'Strikethrough'])
 
-export function buildInlineDecorations(state: EditorState): { hides: DecorationSet; lines: DecorationSet } {
-  const hides: Range<Decoration>[] = []
-  const lines: Range<Decoration>[] = []
+/** A decoration that only applies when the selection does not touch its guard range. */
+interface RevealableHide { deco: Range<Decoration>; guardFrom: number; guardTo: number }
+
+/** The doc-only parts of inline decoration, computed once per doc change. */
+export interface InlineStructure {
+  staticHides: Range<Decoration>[]
+  staticLines: Range<Decoration>[]
+  revealableHides: RevealableHide[]
+  tables: Array<[number, number]>
+}
+
+function lineRange(state: EditorState, from: number, to: number, deco: Decoration): Range<Decoration>[] {
+  const doc = state.doc
+  const first = doc.lineAt(from).number
+  const last = doc.lineAt(to).number
+  const out: Range<Decoration>[] = []
+  for (let n = first; n <= last; n++) out.push(deco.range(doc.line(n).from))
+  return out
+}
+
+/** Walk the syntax tree once, collecting doc-only decorations and selection-sensitive candidates. */
+export function buildInlineStructure(state: EditorState): InlineStructure {
+  const staticHides: Range<Decoration>[] = []
+  const staticLines: Range<Decoration>[] = []
+  const revealableHides: RevealableHide[] = []
+  const tables: Array<[number, number]> = []
+
   const doc = state.doc
   const frontmatter = frontmatterRange(state)
-  const mathRanges = findMathRanges(state)
+  const mathRanges = getMathRanges(state)
   const insideMath = (from: number, to: number) =>
     mathRanges.some(m => from >= m.from && to <= m.to)
 
-  const eachLine = (from: number, to: number, deco: Decoration) => {
-    const first = doc.lineAt(from).number
-    const last = doc.lineAt(to).number
-    for (let n = first; n <= last; n++) lines.push(deco.range(doc.line(n).from))
-  }
-  const hideWithSpace = (from: number, to: number) => {
+  const hideWithSpace = (from: number, to: number): Range<Decoration> => {
     const space = doc.sliceString(to, to + 1) === ' ' ? 1 : 0
-    hides.push(hide.range(from, to + space))
+    return hide.range(from, to + space)
   }
 
   syntaxTree(state).iterate({
     enter(node): boolean | void {
-      // frontmatter is styled as one block; the markdown nodes lezer sees inside
-      // it (rules, lists, Setext headings) are artefacts
       if (insideFrontmatter(frontmatter, node.from, node.to)) return false
       if (insideMath(node.from, node.to)) return false
       const name = node.name
       if (name.startsWith('ATXHeading')) {
-        lines.push(HEADING_LINE[Number(name.slice(-1)) - 1].range(doc.lineAt(node.from).from))
+        staticLines.push(HEADING_LINE[Number(name.slice(-1)) - 1].range(doc.lineAt(node.from).from))
         return
       }
       if (name === 'SetextHeading1' || name === 'SetextHeading2') {
-        lines.push(HEADING_LINE[name === 'SetextHeading1' ? 0 : 1].range(doc.lineAt(node.from).from))
+        staticLines.push(HEADING_LINE[name === 'SetextHeading1' ? 0 : 1].range(doc.lineAt(node.from).from))
         return
       }
       switch (name) {
@@ -101,85 +118,89 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
           const parent = node.node.parent
           if (!parent) return
           if (parent.name.startsWith('ATXHeading')) {
-            // hide the leading '# ' (the parent's first child), never a trailing closing sequence
             const leading = parent.firstChild
-            if (leading && node.from === leading.from && !selectionTouchesLine(state, node.from)) {
-              hideWithSpace(node.from, node.to)
+            if (leading && node.from === leading.from) {
+              revealableHides.push({
+                deco: hideWithSpace(node.from, node.to),
+                guardFrom: doc.lineAt(node.from).from,
+                guardTo: doc.lineAt(node.from).to,
+              })
             }
           } else {
-            hides.push(DIM.range(node.from, node.to)) // setext underline stays visible
+            staticHides.push(DIM.range(node.from, node.to))
           }
           return
         }
         case 'Blockquote': {
           const firstLine = doc.lineAt(node.from)
-          const firstLineText = firstLine.text
-          const quoteContent = firstLineText.replace(/^>\s*/, '')
+          const quoteContent = firstLine.text.replace(/^>\s*/, '')
           const alertMatch = ALERT_RE.exec(quoteContent)
           if (alertMatch) {
             const kind = alertMatch[1].toLowerCase() as AlertKind
-            eachLine(node.from, node.to, ALERT_LINES[kind])
-            const tagPosInLine = firstLineText.indexOf(alertMatch[0].trim())
+            staticLines.push(...lineRange(state, node.from, node.to, ALERT_LINES[kind]))
+            const tagPosInLine = firstLine.text.indexOf(alertMatch[0].trim())
             if (tagPosInLine !== -1) {
               const tagFrom = firstLine.from + tagPosInLine
               const tagTo = tagFrom + alertMatch[0].trim().length
-              if (!selectionTouchesLine(state, firstLine.from)) {
-                hides.push(Decoration.replace({ widget: new AlertTitleWidget(kind) }).range(tagFrom, tagTo))
-              }
+              revealableHides.push({
+                deco: Decoration.replace({ widget: new AlertTitleWidget(kind) }).range(tagFrom, tagTo),
+                guardFrom: firstLine.from,
+                guardTo: firstLine.to,
+              })
             }
           } else {
-            eachLine(node.from, node.to, QUOTE_LINE)
+            staticLines.push(...lineRange(state, node.from, node.to, QUOTE_LINE))
           }
           return
         }
         case 'QuoteMark':
-          if (!selectionTouchesLine(state, node.from)) hideWithSpace(node.from, node.to)
+          revealableHides.push({
+            deco: hideWithSpace(node.from, node.to),
+            guardFrom: doc.lineAt(node.from).from,
+            guardTo: doc.lineAt(node.from).to,
+          })
           return
         case 'EmphasisMark':
         case 'StrikethroughMark': {
           const parent = node.node.parent
-          if (parent && INLINE_PARENTS.has(parent.name) && !selectionTouches(state, parent.from, parent.to)) {
-            hides.push(hide.range(node.from, node.to))
+          if (parent && INLINE_PARENTS.has(parent.name)) {
+            revealableHides.push({ deco: hide.range(node.from, node.to), guardFrom: parent.from, guardTo: parent.to })
           }
           return
         }
         case 'InlineCode':
-          hides.push(INLINE_CODE.range(node.from, node.to))
+          staticHides.push(INLINE_CODE.range(node.from, node.to))
           return
         case 'CodeMark': {
           const parent = node.node.parent
           if (parent?.name === 'InlineCode') {
-            if (!selectionTouches(state, parent.from, parent.to)) hides.push(hide.range(node.from, node.to))
+            revealableHides.push({ deco: hide.range(node.from, node.to), guardFrom: parent.from, guardTo: parent.to })
           } else {
-            hides.push(DIM.range(node.from, node.to))
+            staticHides.push(DIM.range(node.from, node.to))
           }
           return
         }
         case 'CodeInfo':
-          hides.push(DIM.range(node.from, node.to))
+          staticHides.push(DIM.range(node.from, node.to))
           return
         case 'FencedCode':
-          eachLine(node.from, node.to, CODEBLOCK_LINE)
+          staticLines.push(...lineRange(state, node.from, node.to, CODEBLOCK_LINE))
           return
         case 'Link': {
           const text = state.sliceDoc(node.from, node.to)
           if (/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i.test(text)) {
             return false
           }
-          if (!selectionTouches(state, node.from, node.to)) {
-            for (let child = node.node.firstChild; child; child = child.nextSibling) {
-              if (child.name === 'LinkMark' || child.name === 'URL' || child.name === 'LinkTitle') {
-                hides.push(hide.range(child.from, child.to))
-              }
+          for (let child = node.node.firstChild; child; child = child.nextSibling) {
+            if (child.name === 'LinkMark' || child.name === 'URL' || child.name === 'LinkTitle') {
+              revealableHides.push({ deco: hide.range(child.from, child.to), guardFrom: node.from, guardTo: node.to })
             }
           }
-          hides.push(LINK_TEXT.range(node.from, node.to))
+          staticHides.push(LINK_TEXT.range(node.from, node.to))
           return
         }
         case 'Table':
-          if (selectionTouches(state, node.from, node.to)) {
-            eachLine(node.from, node.to, TABLE_LINE)
-          }
+          tables.push([node.from, node.to])
           return false
         case 'Image':
           return false
@@ -192,27 +213,48 @@ export function buildInlineDecorations(state: EditorState): { hides: DecorationS
     const last = doc.lineAt(frontmatter.to).number
     for (let n = first; n <= last; n++) {
       const deco = n === first ? FRONTMATTER_FIRST : n === last ? FRONTMATTER_LAST : FRONTMATTER_LINE
-      lines.push(deco.range(doc.line(n).from))
+      staticLines.push(deco.range(doc.line(n).from))
     }
   }
 
+  return { staticHides, staticLines, revealableHides, tables }
+}
+
+/** Apply the selection to a cached structure (cheap — no tree walk, no math scan). */
+export function applyInlineSelection(structure: InlineStructure, state: EditorState): { hides: DecorationSet; lines: DecorationSet } {
+  const hides = [...structure.staticHides]
+  const lines = [...structure.staticLines]
+  for (const r of structure.revealableHides) {
+    if (!selectionTouches(state, r.guardFrom, r.guardTo)) hides.push(r.deco)
+  }
+  for (const [from, to] of structure.tables) {
+    if (selectionTouches(state, from, to)) lines.push(...lineRange(state, from, to, TABLE_LINE))
+  }
   return { hides: Decoration.set(hides, true), lines: Decoration.set(lines, true) }
+}
+
+/** Pure full build with selection applied (kept for tests and direct use). */
+export function buildInlineDecorations(state: EditorState): { hides: DecorationSet; lines: DecorationSet } {
+  return applyInlineSelection(buildInlineStructure(state), state)
 }
 
 export const inlineDecorations = ViewPlugin.fromClass(
   class {
+    structure: InlineStructure
     hides: DecorationSet
     lines: DecorationSet
     constructor(view: EditorView) {
-      const b = buildInlineDecorations(view.state)
-      this.hides = b.hides
-      this.lines = b.lines
+      this.structure = buildInlineStructure(view.state)
+      const applied = applyInlineSelection(this.structure, view.state)
+      this.hides = applied.hides
+      this.lines = applied.lines
     }
     update(u: ViewUpdate) {
+      if (u.docChanged) this.structure = buildInlineStructure(u.state)
       if (u.docChanged || u.selectionSet) {
-        const b = buildInlineDecorations(u.state)
-        this.hides = b.hides
-        this.lines = b.lines
+        const applied = applyInlineSelection(this.structure, u.state)
+        this.hides = applied.hides
+        this.lines = applied.lines
       }
     }
   },

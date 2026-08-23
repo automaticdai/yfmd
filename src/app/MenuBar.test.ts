@@ -28,25 +28,66 @@ describe('MenuBar', () => {
       'table-add-col',
       'table-del-col',
     ])
+  })
 
-    const quoteSubmenu = editMenu?.items.find(
-      item => 'submenu' in item && item.label === 'Quote / Callout',
-    ) as MenuSub | undefined
-
-    expect(quoteSubmenu).toBeDefined()
-    expect(quoteSubmenu?.submenu).toBe(true)
-
-    const quoteActions = quoteSubmenu?.items
+  it('splits Quote into a top-level item and Callout into its own submenu', () => {
+    const menus: MenuGroup[] = buildMenus([])
+    const editMenu = menus.find(m => m.title === 'Edit')!
+    const actions = editMenu.items
       .filter((item): item is { action: string; label: string } => 'action' in item)
       .map(item => item.action)
 
-    expect(quoteActions).toEqual([
-      'quote',
+    // Quote is a standalone Edit action, no longer nested inside Callout.
+    expect(actions).toContain('quote')
+
+    const calloutSubmenu = editMenu.items.find(
+      item => 'submenu' in item && item.label === 'Callout',
+    ) as MenuSub | undefined
+
+    expect(calloutSubmenu).toBeDefined()
+    expect(calloutSubmenu?.submenu).toBe(true)
+
+    const calloutActions = calloutSubmenu?.items
+      .filter((item): item is { action: string; label: string } => 'action' in item)
+      .map(item => item.action)
+
+    expect(calloutActions).toEqual([
       'alert:note',
       'alert:tip',
       'alert:important',
       'alert:warning',
       'alert:caution',
     ])
+
+    const calloutLabels = calloutSubmenu?.items
+      .filter((item): item is { action: string; label: string } => 'action' in item)
+      .map(item => item.label)
+
+    // Callout names are shown bare, without the (>[!NOTE]) syntax.
+    expect(calloutLabels).toEqual(['Note', 'Tip', 'Important', 'Warning', 'Caution'])
+  })
+
+  it('includes Always on Top in the View menu', () => {
+    const menus: MenuGroup[] = buildMenus([])
+    const viewMenu = menus.find(m => m.title === 'View')!
+    const actions = viewMenu.items
+      .filter((item): item is { action: string; label: string } => 'action' in item)
+      .map(item => item.action)
+
+    expect(actions).toContain('always-on-top')
+  })
+
+  it('includes Undo/Redo and clipboard actions in the Edit menu', () => {
+    const menus: MenuGroup[] = buildMenus([])
+    const editMenu = menus.find(m => m.title === 'Edit')!
+    const actions = editMenu.items
+      .filter((item): item is { action: string; label: string } => 'action' in item)
+      .map(item => item.action)
+
+    expect(actions).toContain('undo')
+    expect(actions).toContain('redo')
+    expect(actions).toContain('copy')
+    expect(actions).toContain('paste')
+    expect(actions).toContain('paste-text-only')
   })
 })

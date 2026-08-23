@@ -1,67 +1,10 @@
-import { syntaxTree } from '@codemirror/language'
 import type { EditorState } from '@codemirror/state'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
-import { findMathRanges } from './live-preview/math'
+import { getExtensions } from './live-preview/analysis'
+import { EMOJI, type ExtMatch } from './live-preview/extensions'
 
-export type ExtKind = 'mark' | 'sup' | 'sub' | 'emoji'
-export interface ExtMatch { from: number; to: number; innerFrom: number; innerTo: number; kind: ExtKind }
-
-export const EMOJI: Record<string, string> = {
-  smile: '😄', grin: '😁', joy: '😂', wink: '😉', heart: '❤️', smiley: '😃',
-  thumbsup: '👍', thumbsdown: '👎', clap: '👏', fire: '🔥', star: '⭐', ok_hand: '👌',
-  warning: '⚠️', check: '✅', x: '❌', tada: '🎉', rocket: '🚀', pray: '🙏', eyes: '👀',
-}
-
-function codeRanges(state: EditorState): Array<[number, number]> {
-  const ranges: Array<[number, number]> = []
-  syntaxTree(state).iterate({
-    enter(node): boolean | void {
-      if (
-        node.name === 'FencedCode' ||
-        node.name === 'CodeBlock' ||
-        node.name === 'InlineCode' ||
-        node.name === 'Table'
-      ) {
-        ranges.push([node.from, node.to])
-        return false
-      }
-    },
-  })
-  for (const m of findMathRanges(state)) {
-    ranges.push([m.from, m.to])
-  }
-  return ranges
-}
-
-/** Inline extension syntax (`==`, `^`, `~`, `:emoji:`) outside code blocks. */
-export function findExtensions(state: EditorState): ExtMatch[] {
-  const text = state.doc.toString()
-  const code = codeRanges(state)
-  const inCode = (pos: number) => code.some(([f, t]) => pos >= f && pos < t)
-  const out: ExtMatch[] = []
-
-  for (const m of text.matchAll(/==([^=\n]+)==/g)) {
-    if (inCode(m.index!)) continue
-    out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 2, innerTo: m.index! + 2 + m[1].length, kind: 'mark' })
-  }
-  for (const m of text.matchAll(/\^([^\s^][^\^\n]*)\^(?!\^)/g)) {
-    if (inCode(m.index!)) continue
-    out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'sup' })
-  }
-  for (const m of text.matchAll(/~([^\s~][^~\n]*)~(?!~)/g)) {
-    if (inCode(m.index!)) continue
-    out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'sub' })
-  }
-  for (const m of text.matchAll(/:([a-zA-Z0-9_+-]+):/g)) {
-    if (!EMOJI[m[1]] || inCode(m.index!)) continue
-    out.push({ from: m.index!, to: m.index! + m[0].length, innerFrom: m.index! + 1, innerTo: m.index! + 1 + m[1].length, kind: 'emoji' })
-  }
-  // Matches are gathered one kind at a time, so the array isn't in document
-  // order; RangeSetBuilder (the sole consumer) requires ascending `from`.
-  out.sort((a, b) => a.from - b.from)
-  return out
-}
+export { EMOJI, findExtensions, type ExtKind, type ExtMatch } from './live-preview/extensions'
 
 class EmojiWidget extends WidgetType {
   constructor(readonly char: string) { super() }
@@ -75,10 +18,10 @@ class EmojiWidget extends WidgetType {
   ignoreEvent() { return true }
 }
 
-function buildExtensionDecorations(state: EditorState): DecorationSet {
+function buildExtensionDecorations(matches: ExtMatch[], state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>()
   const hide = Decoration.replace({})
-  for (const m of findExtensions(state)) {
+  for (const m of matches) {
     if (m.kind === 'emoji') {
       const char = EMOJI[state.sliceDoc(m.innerFrom, m.innerTo)]
       if (char) builder.add(m.from, m.to, Decoration.replace({ widget: new EmojiWidget(char) }))
@@ -92,9 +35,9 @@ function buildExtensionDecorations(state: EditorState): DecorationSet {
 }
 
 export const markdownExtensionsField = StateField.define<DecorationSet>({
-  create: buildExtensionDecorations,
+  create: state => buildExtensionDecorations(getExtensions(state), state),
   update(deco, tr) {
-    if (tr.docChanged) return buildExtensionDecorations(tr.state)
+    if (tr.docChanged) return buildExtensionDecorations(getExtensions(tr.state), tr.state)
     return deco.map(tr.changes)
   },
   provide: f => EditorView.decorations.from(f),

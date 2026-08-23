@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { redo, undo } from '@codemirror/commands'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
@@ -24,7 +25,7 @@ import { insertImage } from './editor/image-insert'
 import { addTableColumn, addTableRow, removeTableColumn, removeTableRow } from './editor/table-edit'
 import { insertToc } from './editor/toc'
 import {
-  insertLink, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
+  copySelection, insertLink, pasteRichText, pasteText, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
@@ -59,6 +60,7 @@ export default function App() {
   const [tableCreatorOpen, setTableCreatorOpen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
+  const [alwaysOnTop, setAlwaysOnTop] = useState(false)
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -402,6 +404,11 @@ export default function App() {
         }
         break
       }
+      case 'undo': if (view) { undo(view); view.focus() } break
+      case 'redo': if (view) { redo(view); view.focus() } break
+      case 'copy': if (view) copySelection(view); break
+      case 'paste': if (view) void pasteRichText(view); break
+      case 'paste-text-only': if (view) void pasteText(view); break
       case 'bold': if (view) { toggleBold(view); view.focus() } break
       case 'italic': if (view) { toggleItalic(view); view.focus() } break
       case 'strike': if (view) { toggleStrikethrough(view); view.focus() } break
@@ -437,6 +444,16 @@ export default function App() {
       case 'about': setAboutOpen(true); break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
+      case 'always-on-top': {
+        const next = !alwaysOnTop
+        setAlwaysOnTop(next)
+        if ('__TAURI_INTERNALS__' in window) {
+          void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+            getCurrentWindow().setAlwaysOnTop(next)
+          })
+        }
+        break
+      }
       case 'load-theme-css': {
         const fs = fsRef.current
         if (fs) {
@@ -458,12 +475,13 @@ export default function App() {
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
       case 'source-mode': toggleSource(); break
     }
-  }, [notify, quitApp, toggleSource, customThemeCss])
+  }, [notify, quitApp, toggleSource, customThemeCss, alwaysOnTop])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
+  if (alwaysOnTop) checkedActions.add('always-on-top')
 
   return (
     <div className="app">

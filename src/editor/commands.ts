@@ -64,3 +64,51 @@ export function setLivePreview(view: EditorView, opts: LivePreviewOptions, on: b
     effects: livePreviewCompartment.reconfigure(on ? livePreviewExtensions(opts) : []),
   })
 }
+
+/** Copy the main selection's text to the clipboard, then return focus to the editor. */
+export function copySelection(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const text = view.state.sliceDoc(from, to)
+  if (navigator.clipboard) void navigator.clipboard.writeText(text).catch(() => {})
+  view.focus()
+}
+
+/** Paste clipboard text as plain text at the cursor, then return focus to the editor. */
+export async function pasteText(view: EditorView): Promise<void> {
+  if (!navigator.clipboard) return
+  try {
+    const text = await navigator.clipboard.readText()
+    view.dispatch(view.state.replaceSelection(text))
+  } catch {
+    // clipboard read denied or empty
+  }
+  view.focus()
+}
+
+/** Read the clipboard's HTML payload, if any. */
+async function readClipboardHtml(): Promise<string | null> {
+  if (!navigator.clipboard?.read) return null
+  try {
+    const items = await navigator.clipboard.read()
+    for (const item of items) {
+      if (item.types.includes('text/html')) {
+        return await (await item.getType('text/html')).text()
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/** Paste clipboard content, converting rich text (HTML) to Markdown when available. */
+export async function pasteRichText(view: EditorView): Promise<void> {
+  const html = await readClipboardHtml()
+  if (html) {
+    const { htmlToMarkdown } = await import('./rich-paste')
+    view.dispatch(view.state.replaceSelection(htmlToMarkdown(html)))
+  } else {
+    await pasteText(view)
+  }
+  view.focus()
+}

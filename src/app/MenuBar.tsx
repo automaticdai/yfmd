@@ -46,6 +46,13 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     {
       title: t('menu.edit'),
       items: [
+        { action: 'undo', label: t('edit.undo'), shortcut: 'Ctrl+Z' },
+        { action: 'redo', label: t('edit.redo'), shortcut: 'Ctrl+Y' },
+        { separator: true },
+        { action: 'copy', label: t('edit.copy'), shortcut: 'Ctrl+C' },
+        { action: 'paste', label: t('edit.paste'), shortcut: 'Ctrl+V' },
+        { action: 'paste-text-only', label: t('edit.pasteTextOnly'), shortcut: 'Ctrl+Shift+V' },
+        { separator: true },
         { action: 'bold', label: t('edit.bold'), shortcut: 'Ctrl+B' },
         { action: 'italic', label: t('edit.italic'), shortcut: 'Ctrl+I' },
         { action: 'strike', label: t('edit.strikethrough'), shortcut: 'Ctrl+Shift+X' },
@@ -57,12 +64,11 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'heading:2', label: t('edit.heading2'), shortcut: 'Ctrl+2' },
         { action: 'heading:3', label: t('edit.heading3'), shortcut: 'Ctrl+3' },
         { action: 'heading:0', label: t('edit.paragraph'), shortcut: 'Ctrl+0' },
+        { action: 'quote', label: t('edit.quote') },
         {
           submenu: true,
-          label: t('edit.quoteMenu'),
+          label: t('edit.callout'),
           items: [
-            { action: 'quote', label: t('edit.quote') },
-            { separator: true },
             { action: 'alert:note', label: t('edit.alertNote') },
             { action: 'alert:tip', label: t('edit.alertTip') },
             { action: 'alert:important', label: t('edit.alertImportant') },
@@ -102,6 +108,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
         { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'F8' },
         { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'F9' },
+        { action: 'always-on-top', label: t('view.alwaysOnTop') },
       ],
     },
     {
