@@ -8,6 +8,7 @@ export const LOCALES: { id: Locale; label: string }[] = [
 const en = {
   'menu.file': 'File',
   'menu.edit': 'Edit',
+  'menu.format': 'Format',
   'menu.view': 'View',
   'menu.theme': 'Theme',
   'menu.help': 'Help',
@@ -151,6 +152,7 @@ export type MessageKey = keyof typeof en
 const zhCN: Record<MessageKey, string> = {
   'menu.file': '文件',
   'menu.edit': '编辑',
+  'menu.format': '格式',
   'menu.view': '视图',
   'menu.theme': '主题',
   'menu.help': '帮助',

@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { buildMenus, type MenuGroup, type MenuSub } from './MenuBar'
 
 describe('MenuBar', () => {
-  it('builds menus with recent files and table submenu in Edit menu', () => {
+  it('builds menus with recent files and table submenu in Format menu', () => {
     const menus: MenuGroup[] = buildMenus(['/path/to/doc.md'])
-    expect(menus.map(m => m.title)).toEqual(['File', 'Edit', 'View', 'Theme', 'Help'])
+    expect(menus.map(m => m.title)).toEqual(['File', 'Edit', 'Format', 'View', 'Theme', 'Help'])
 
-    const editMenu = menus.find(m => m.title === 'Edit')
-    expect(editMenu).toBeDefined()
+    const formatMenu = menus.find(m => m.title === 'Format')
+    expect(formatMenu).toBeDefined()
 
-    const tableSubmenu = editMenu?.items.find(
+    const tableSubmenu = formatMenu?.items.find(
       item => 'submenu' in item && item.label === 'Table',
     ) as MenuSub | undefined
 
@@ -32,15 +32,15 @@ describe('MenuBar', () => {
 
   it('splits Quote into a top-level item and Callout into its own submenu', () => {
     const menus: MenuGroup[] = buildMenus([])
-    const editMenu = menus.find(m => m.title === 'Edit')!
-    const actions = editMenu.items
+    const formatMenu = menus.find(m => m.title === 'Format')!
+    const actions = formatMenu.items
       .filter((item): item is { action: string; label: string } => 'action' in item)
       .map(item => item.action)
 
-    // Quote is a standalone Edit action, no longer nested inside Callout.
+    // Quote is a standalone Format action, no longer nested inside Callout.
     expect(actions).toContain('quote')
 
-    const calloutSubmenu = editMenu.items.find(
+    const calloutSubmenu = formatMenu.items.find(
       item => 'submenu' in item && item.label === 'Callout',
     ) as MenuSub | undefined
 
@@ -95,17 +95,21 @@ describe('MenuBar', () => {
     expect(byAction('typewriter-mode')?.shortcut).toBeUndefined()
   })
 
-  it('includes Undo/Redo and clipboard actions in the Edit menu', () => {
+  it('keeps history/clipboard/find in Edit and moves styling to Format', () => {
     const menus: MenuGroup[] = buildMenus([])
-    const editMenu = menus.find(m => m.title === 'Edit')!
-    const actions = editMenu.items
-      .filter((item): item is { action: string; label: string } => 'action' in item)
-      .map(item => item.action)
+    const actionsOf = (title: string) =>
+      menus.find(m => m.title === title)!.items
+        .filter((item): item is { action: string; label: string } => 'action' in item)
+        .map(item => item.action)
 
-    expect(actions).toContain('undo')
-    expect(actions).toContain('redo')
-    expect(actions).toContain('copy')
-    expect(actions).toContain('paste')
-    expect(actions).toContain('paste-text-only')
+    const edit = actionsOf('Edit')
+    expect(edit).toEqual(['undo', 'redo', 'copy', 'paste', 'paste-text-only', 'find'])
+    expect(edit).not.toContain('bold')
+    expect(edit).not.toContain('heading:1')
+
+    const format = actionsOf('Format')
+    for (const a of ['bold', 'italic', 'link', 'heading:1', 'quote', 'code-block', 'toc']) {
+      expect(format).toContain(a)
+    }
   })
 })

@@ -53,6 +53,12 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'paste', label: t('edit.paste'), shortcut: 'Ctrl+V' },
         { action: 'paste-text-only', label: t('edit.pasteTextOnly'), shortcut: 'Ctrl+Shift+V' },
         { separator: true },
+        { action: 'find', label: t('edit.findReplace'), shortcut: 'F4' },
+      ],
+    },
+    {
+      title: t('menu.format'),
+      items: [
         { action: 'bold', label: t('edit.bold'), shortcut: 'Ctrl+B' },
         { action: 'italic', label: t('edit.italic'), shortcut: 'Ctrl+I' },
         { action: 'strike', label: t('edit.strikethrough'), shortcut: 'Ctrl+Shift+X' },
@@ -97,8 +103,6 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'math-block', label: t('edit.mathBlock') },
         { action: 'hr', label: t('edit.horizontalRule') },
         { action: 'toc', label: t('edit.toc') },
-        { separator: true },
-        { action: 'find', label: t('edit.findReplace'), shortcut: 'F4' },
       ],
     },
     {

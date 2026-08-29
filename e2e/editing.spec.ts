@@ -42,21 +42,21 @@ test('typing markdown renders live', async ({ page }) => {
   expect(await docText(page)).toBe('## Section')
 })
 
-test('Edit menu applies a heading and toggles it back to a paragraph', async ({ page }) => {
+test('Format menu applies a heading and toggles it back to a paragraph', async ({ page }) => {
   await openApp(page)
   await setDoc(page, 'hello')
   await setCursor(page, 0)
-  await menuAction(page, 'Edit', 'heading:2')
+  await menuAction(page, 'Format', 'heading:2')
   expect(await docText(page)).toBe('## hello')
-  await menuAction(page, 'Edit', 'heading:2')   // same level again -> toggles off
+  await menuAction(page, 'Format', 'heading:2')   // same level again -> toggles off
   expect(await docText(page)).toBe('hello')
 })
 
-test('Edit menu inserts a table that renders as a widget', async ({ page }) => {
+test('Format menu inserts a table that renders as a widget', async ({ page }) => {
   await openApp(page)
   await setDoc(page, 'notes')
   await setCursor(page, 5)
-  await menuAction(page, 'Edit', 'table')
+  await menuAction(page, 'Format', 'table')
   // the "Header 1" placeholder is left selected for immediate typing, so the
   // table stays as raw source until the cursor moves away from it
   await setCursor(page, 0)
@@ -67,7 +67,7 @@ test('Edit menu inserts a table that renders as a widget', async ({ page }) => {
 test('Table Creator dialog creates custom m x n table', async ({ page }) => {
   await openApp(page)
   await setDoc(page, '')
-  await menuAction(page, 'Edit', 'table-creator')
+  await menuAction(page, 'Format', 'table-creator')
   
   const dialog = page.locator('.table-creator-dialog')
   await expect(dialog).toBeVisible()

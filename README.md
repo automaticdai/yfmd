@@ -14,7 +14,7 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **GitHub Alert Callouts** — supports `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`,
   `> [!WARNING]`, and `> [!CAUTION]` with distinct colors and SVG title badges
 - **Interactive Tables & Table Creator** — render as real HTML tables; visual
-  $m \times n$ Table Creator dialog (`Edit → Table → Table Creator…`), table actions
+  $m \times n$ Table Creator dialog (`Format → Table → Table Creator…`), table actions
   (Add/Delete Row & Column), and auto-aligned pipe formatting
 - **Math** — inline `$…$` and block `$$…$$` rendered with KaTeX (currency-safe:
   `costs $5 and $10` stays text)
@@ -23,9 +23,9 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Task lists** — clickable checkboxes that update the source text
 - **Markdown extensions** — `==highlight==`, `^superscript^`, `~subscript~`,
   `:emoji:` shortcodes, and `[^n]` footnotes
-- **Images** — paste, drag-and-drop, or insert from the Edit menu
+- **Images** — paste, drag-and-drop, or insert from the Format menu
 - **Inline `#tags`** — styled and clickable in the rendered view
-- **Table of contents** — inserted from the Edit menu; heading anchors carry
+- **Table of contents** — inserted from the Format menu; heading anchors carry
   through to HTML export
 - **Frontmatter** — a leading `---` YAML block renders as one quiet metadata box
   instead of a rule, a list and a stray heading; excluded from exports
