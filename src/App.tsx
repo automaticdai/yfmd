@@ -5,6 +5,7 @@ import { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
 import { AboutDialog } from './app/AboutDialog'
+import { ShortcutsDialog } from './app/ShortcutsDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { TableCreatorDialog } from './app/TableCreatorDialog'
 import { RenameDialog } from './app/RenameDialog'
@@ -59,6 +60,7 @@ export default function App() {
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [tableCreatorOpen, setTableCreatorOpen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
@@ -511,6 +513,10 @@ export default function App() {
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
       case 'about': setAboutOpen(true); break
+      case 'shortcuts': setShortcutsOpen(true); break
+      case 'markdown-guide': void c?.newFile(welcome); break
+      case 'report-issue': openExternal('https://github.com/automaticdai/yfmd/issues'); break
+      case 'check-updates': openExternal('https://github.com/automaticdai/yfmd/releases'); break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
       case 'always-on-top': {
@@ -547,7 +553,7 @@ export default function App() {
       case 'source-mode': toggleSource(); break
       case 'read-only': setReadOnly(v => !v); break
     }
-  }, [notify, quitApp, toggleSource, toggleFullscreen, customThemeCss, alwaysOnTop])
+  }, [notify, quitApp, toggleSource, toggleFullscreen, openExternal, customThemeCss, alwaysOnTop])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
@@ -639,6 +645,7 @@ export default function App() {
         />
       )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       {renamePath !== null && (
         <RenameDialog
           name={renamePath.slice(renamePath.lastIndexOf('/') + 1)}

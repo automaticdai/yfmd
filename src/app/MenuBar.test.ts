@@ -98,6 +98,22 @@ describe('MenuBar', () => {
     expect(byAction('typewriter-mode')?.shortcut).toBeUndefined()
   })
 
+  it('populates the Help menu with shortcuts, guide, issue, updates and about', () => {
+    const menus: MenuGroup[] = buildMenus([])
+    const helpMenu = menus.find(m => m.title === 'Help')!
+    const actions = helpMenu.items
+      .filter((item): item is { action: string; label: string } => 'action' in item)
+      .map(item => item.action)
+
+    expect(actions).toEqual([
+      'shortcuts',
+      'markdown-guide',
+      'report-issue',
+      'check-updates',
+      'about',
+    ])
+  })
+
   it('keeps history/clipboard/find in Edit and moves styling to Format', () => {
     const menus: MenuGroup[] = buildMenus([])
     const actionsOf = (title: string) =>

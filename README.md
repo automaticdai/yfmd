@@ -48,6 +48,8 @@ block your cursor touches reveals its raw markdown syntax for editing.
   inlined CSS/highlighting) and PDF via the system print dialog
 - **Read-Only Mode** — View menu; locks the document (no typing, menu edit
   commands are inert), shows a `READ-ONLY` badge in the status bar
+- **Help menu** — a Keyboard Shortcuts reference dialog, "Markdown Guide" (opens
+  the built-in welcome document), Report an Issue, and Check for Updates
 - **Light/dark themes**, source-mode toggle (`Ctrl+/`), find/replace (`Ctrl+F`)
 
 The markdown text is always the single source of truth: rendering is a decoration

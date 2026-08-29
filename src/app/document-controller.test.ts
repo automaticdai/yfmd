@@ -44,6 +44,18 @@ describe('DocumentController', () => {
     expect(await h.fs.readFile('/draft.md')).toBe('draft')
     expect(h.controller.meta.path).toBe('/draft.md')
   })
+  it('newFile can seed the untitled document with content (Markdown guide)', async () => {
+    const h = harness()
+    await h.controller.newFile('# Guide\n\nhello')
+    expect(h.text()).toBe('# Guide\n\nhello')
+    expect(h.controller.meta).toMatchObject({ path: null, dirty: false })
+  })
+  it('newFile with a dirty doc still runs the discard guard', async () => {
+    const h = harness(['cancel'])
+    h.type('unsaved')
+    await h.controller.newFile('# Guide')
+    expect(h.text()).toBe('unsaved')          // guard cancelled, doc untouched
+  })
   it('guardDirty cancel blocks switching', async () => {
     const h = harness(['cancel'])
     await h.fs.writeFile('/a.md', 'A')

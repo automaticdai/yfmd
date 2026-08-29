@@ -129,7 +129,15 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     },
     {
       title: t('menu.help'),
-      items: [{ action: 'about', label: t('help.about'), shortcut: 'F1' }],
+      items: [
+        { action: 'shortcuts', label: t('help.shortcuts') },
+        { action: 'markdown-guide', label: t('help.markdownGuide') },
+        { separator: true },
+        { action: 'report-issue', label: t('help.reportIssue') },
+        { action: 'check-updates', label: t('help.checkUpdates') },
+        { separator: true },
+        { action: 'about', label: t('help.about'), shortcut: 'F1' },
+      ],
     },
   ]
 }

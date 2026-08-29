@@ -83,9 +83,14 @@ const en = {
   'view.alwaysOnTop': 'Always on Top',
   'view.lineNumbers': 'Code Line Numbers',
 
+  'help.shortcuts': 'Keyboard Shortcuts',
+  'help.markdownGuide': 'Markdown Guide',
+  'help.reportIssue': 'Report an Issue',
+  'help.checkUpdates': 'Check for Updates',
   'help.about': 'About yfmd',
+  'shortcuts.hint': 'Modifier keys follow your platform (⌘ on macOS).',
   'about.version': 'Version',
-  'about.tagline': 'A WYSIWYG markdown editor',
+  'about.tagline': 'A modern, responsive, beautiful wysiwyg Markdown editor.',
   'about.license': 'License',
   'about.close': 'Close',
 
@@ -229,9 +234,14 @@ const zhCN: Record<MessageKey, string> = {
   'view.alwaysOnTop': '置顶窗口',
   'view.lineNumbers': '代码行号',
 
+  'help.shortcuts': '键盘快捷键',
+  'help.markdownGuide': 'Markdown 指南',
+  'help.reportIssue': '报告问题',
+  'help.checkUpdates': '检查更新',
   'help.about': '关于 yfmd',
+  'shortcuts.hint': '修饰键随平台而定（macOS 上为 ⌘）。',
   'about.version': '版本',
-  'about.tagline': '一款所见即所得的 Markdown 编辑器',
+  'about.tagline': '一款现代、响应式、精美的所见即所得 Markdown 编辑器。',
   'about.license': '许可证',
   'about.close': '关闭',
 

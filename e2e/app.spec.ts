@@ -79,6 +79,38 @@ test('read-only mode blocks every document edit and shows a badge', async ({ pag
   expect(await docText(page)).toBe('editable again')
 })
 
+test('Help menu: Keyboard Shortcuts dialog, Markdown Guide, and external links', async ({ page }) => {
+  await page.addInitScript(() => {
+    ;(window as unknown as { __opened: string[] }).__opened = []
+    window.open = (url?: string | URL) => {
+      ;(window as unknown as { __opened: string[] }).__opened.push(String(url))
+      return null
+    }
+  })
+  await openApp(page)
+
+  // Keyboard Shortcuts dialog
+  await menuAction(page, 'Help', 'shortcuts')
+  await expect(page.locator('.shortcuts-dialog')).toBeVisible()
+  await expect(page.locator('.shortcuts-dialog .shortcut-keys kbd', { hasText: 'Ctrl' }).first()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.shortcuts-dialog')).toHaveCount(0)
+
+  // Markdown Guide loads the bundled welcome doc as a fresh untitled buffer,
+  // through the dirty-discard guard
+  await setDoc(page, 'scratch text')
+  await menuAction(page, 'Help', 'markdown-guide')
+  await page.locator('[data-choice="discard"]').click()
+  expect(await docText(page)).toContain('# Welcome to yfmd')
+
+  // external links go through window.open
+  await menuAction(page, 'Help', 'report-issue')
+  await menuAction(page, 'Help', 'check-updates')
+  const opened = await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened)
+  expect(opened.some(u => u.endsWith('/issues'))).toBe(true)
+  expect(opened.some(u => u.endsWith('/releases'))).toBe(true)
+})
+
 test('theme menu switches theme and persists', async ({ page }) => {
   await openApp(page)
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('github')
