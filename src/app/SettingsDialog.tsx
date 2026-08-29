@@ -135,23 +135,6 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
                 onChange={e => set('codeLineNumbers', e.target.checked)}
               />
             </label>
-            <div className="settings-row">
-              <span>{t('settings.sidebarOpensOn')}</span>
-              <span className="settings-control">
-                {(['files', 'outline'] as const).map(tab => (
-                  <label key={tab} className="settings-radio">
-                    <input
-                      type="radio"
-                      name="sidebar-tab"
-                      data-setting={`sidebarTab-${tab}`}
-                      checked={settings.sidebarTab === tab}
-                      onChange={() => set('sidebarTab', tab)}
-                    />
-                    {tab === 'files' ? t('sidebar.files') : t('sidebar.outline')}
-                  </label>
-                ))}
-              </span>
-            </div>
           </div>
         )}
 
@@ -164,8 +147,11 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
               min={L.sideMargin.min} max={L.sideMargin.max} step={L.sideMargin.step}
               onInput={v => set('sideMargin', v)} />
             <SliderRow label={t('settings.sidebarWidth')} setting="sidebarWidth" value={settings.sidebarWidth} unit="px"
-              min={L.sidebarWidth.min} max={L.sidebarWidth.max} step={L.sidebarWidth.step}
+              min={L.panelWidth.min} max={L.panelWidth.max} step={L.panelWidth.step}
               onInput={v => set('sidebarWidth', v)} />
+            <SliderRow label={t('settings.outlineWidth')} setting="outlineWidth" value={settings.outlineWidth} unit="px"
+              min={L.panelWidth.min} max={L.panelWidth.max} step={L.panelWidth.step}
+              onInput={v => set('outlineWidth', v)} />
           </div>
         )}
 

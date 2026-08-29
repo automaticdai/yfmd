@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { clampSidebarWidth, DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_LIMITS, THEMES } from './settings'
+import { clampPanelWidth, DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_LIMITS, THEMES } from './settings'
 
 // node environment: emulate localStorage
 class MemStorage {
@@ -33,17 +33,17 @@ describe('loadSettings', () => {
   })
   it('clamps numeric values and rejects bad enums', () => {
     storage.setItem('yfmd-settings', JSON.stringify({
-      theme: 'hotdog', maxWidth: 500, sideMargin: -2, sidebarWidth: 9999, fontSize: 'huge', lineHeight: 9,
-      sidebarTab: 'bogus',
+      theme: 'hotdog', maxWidth: 500, sideMargin: -2, sidebarWidth: 9999, outlineWidth: 5,
+      fontSize: 'huge', lineHeight: 9,
     }))
     const s = loadSettings()
     expect(s.theme).toBe('github')
     expect(s.maxWidth).toBe(80)
     expect(s.sideMargin).toBe(0)
     expect(s.sidebarWidth).toBe(480)
+    expect(s.outlineWidth).toBe(180)
     expect(s.fontSize).toBe(DEFAULT_SETTINGS.fontSize)
     expect(s.lineHeight).toBe(2.2)
-    expect(s.sidebarTab).toBe('files')
   })
   it('defaults language to en and rejects unknown values', () => {
     expect(DEFAULT_SETTINGS.language).toBe('en')
@@ -85,16 +85,16 @@ describe('loadSettings', () => {
   })
 })
 
-describe('clampSidebarWidth', () => {
-  const { min, max } = SETTINGS_LIMITS.sidebarWidth
+describe('clampPanelWidth', () => {
+  const { min, max } = SETTINGS_LIMITS.panelWidth
   it('rounds to a whole pixel', () => {
-    expect(clampSidebarWidth(287.6)).toBe(288)
+    expect(clampPanelWidth(287.6)).toBe(288)
   })
   it('clamps to the allowed range', () => {
-    expect(clampSidebarWidth(0)).toBe(min)
-    expect(clampSidebarWidth(9999)).toBe(max)
+    expect(clampPanelWidth(0)).toBe(min)
+    expect(clampPanelWidth(9999)).toBe(max)
   })
   it('falls back to the default for non-finite input', () => {
-    expect(clampSidebarWidth(Number.NaN)).toBe(DEFAULT_SETTINGS.sidebarWidth)
+    expect(clampPanelWidth(Number.NaN)).toBe(DEFAULT_SETTINGS.sidebarWidth)
   })
 })

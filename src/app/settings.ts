@@ -19,12 +19,12 @@ export interface Settings {
   codeFont: string      // CODE_FONTS id
   maxWidth: number      // rem
   sideMargin: number    // rem
-  sidebarWidth: number  // px
+  sidebarWidth: number  // px — left file panel
+  outlineWidth: number  // px — right outline panel
   fontSize: number      // px
   lineHeight: number
   autosave: boolean
   codeLineNumbers: boolean
-  sidebarTab: 'files' | 'outline'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,17 +35,17 @@ export const DEFAULT_SETTINGS: Settings = {
   maxWidth: 46,
   sideMargin: 3,
   sidebarWidth: 240,
+  outlineWidth: 240,
   fontSize: 16,
   lineHeight: 1.7,
   autosave: false,
   codeLineNumbers: false,
-  sidebarTab: 'files',
 }
 
 export const SETTINGS_LIMITS = {
   maxWidth: { min: 40, max: 80, step: 1 },
   sideMargin: { min: 0, max: 8, step: 0.5 },
-  sidebarWidth: { min: 180, max: 480, step: 10 },
+  panelWidth: { min: 180, max: 480, step: 10 },
   fontSize: { min: 12, max: 24, step: 1 },
   lineHeight: { min: 1.2, max: 2.2, step: 0.05 },
 } as const
@@ -96,12 +96,12 @@ export function loadSettings(): Settings {
     codeFont: fontId(raw.codeFont, CODE_FONTS, D.codeFont),
     maxWidth: num(raw.maxWidth, D.maxWidth, L.maxWidth.min, L.maxWidth.max),
     sideMargin: num(raw.sideMargin, D.sideMargin, L.sideMargin.min, L.sideMargin.max),
-    sidebarWidth: num(raw.sidebarWidth, D.sidebarWidth, L.sidebarWidth.min, L.sidebarWidth.max),
+    sidebarWidth: num(raw.sidebarWidth, D.sidebarWidth, L.panelWidth.min, L.panelWidth.max),
+    outlineWidth: num(raw.outlineWidth, D.outlineWidth, L.panelWidth.min, L.panelWidth.max),
     fontSize: num(raw.fontSize, D.fontSize, L.fontSize.min, L.fontSize.max),
     lineHeight: num(raw.lineHeight, D.lineHeight, L.lineHeight.min, L.lineHeight.max),
     autosave: typeof raw.autosave === 'boolean' ? raw.autosave : D.autosave,
     codeLineNumbers: typeof raw.codeLineNumbers === 'boolean' ? raw.codeLineNumbers : D.codeLineNumbers,
-    sidebarTab: raw.sidebarTab === 'outline' ? 'outline' : 'files',
   }
 }
 
@@ -109,8 +109,8 @@ export function saveSettings(s: Settings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
 }
 
-/** Round and clamp a dragged side-panel width to the allowed range. */
-export function clampSidebarWidth(width: number): number {
-  const L = SETTINGS_LIMITS.sidebarWidth
+/** Round and clamp a dragged side-panel width (either panel) to the allowed range. */
+export function clampPanelWidth(width: number): number {
+  const L = SETTINGS_LIMITS.panelWidth
   return Math.round(num(width, DEFAULT_SETTINGS.sidebarWidth, L.min, L.max))
 }

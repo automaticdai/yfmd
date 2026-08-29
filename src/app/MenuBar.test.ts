@@ -77,7 +77,7 @@ describe('MenuBar', () => {
     expect(actions).toContain('always-on-top')
   })
 
-  it('binds F10 to the side panel and F11 to Fullscreen Mode in the View menu', () => {
+  it('binds F9/F10 to the panels and F11 to Fullscreen Mode in the View menu', () => {
     const menus: MenuGroup[] = buildMenus([])
     const viewMenu = menus.find(m => m.title === 'View')!
     const byAction = (action: string) =>
@@ -86,9 +86,13 @@ describe('MenuBar', () => {
           'action' in item && item.action === action,
       )
 
-    expect(byAction('toggle-sidebar')?.shortcut).toBe('F10')
+    expect(byAction('toggle-sidebar')?.shortcut).toBe('F9')
+    expect(byAction('toggle-outline')?.shortcut).toBe('F10')
     expect(byAction('fullscreen')).toBeDefined()
     expect(byAction('fullscreen')?.shortcut).toBe('F11')
+    // Typewriter Mode is menu-only now
+    expect(byAction('typewriter-mode')).toBeDefined()
+    expect(byAction('typewriter-mode')?.shortcut).toBeUndefined()
   })
 
   it('includes Undo/Redo and clipboard actions in the Edit menu', () => {

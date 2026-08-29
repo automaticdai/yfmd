@@ -4,7 +4,7 @@ A WYSIWYG markdown editor for the desktop, built with Tauri 2 and CodeMirror 6.
 What you type renders in place — headings, bold, math, diagrams, tables — and the
 block your cursor touches reveals its raw markdown syntax for editing.
 
-![yfmd editing a document, with the outline pane open in the sidebar](docs/screenshot.png)
+![yfmd editing a document, with the side panels open](docs/screenshot.png)
 
 ## Features
 
@@ -33,13 +33,15 @@ block your cursor touches reveals its raw markdown syntax for editing.
   and per-file removal buttons
 - **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
   text width, side margins, font size, line height, autosave, and code block line numbers
-- **Sidebar** — folder file tree and a live document outline with jump-to-heading;
-  toggle with `F10`, drag its right edge to resize (width is remembered)
+- **File panel** — folder file tree on the left; toggle with `F9`, drag its
+  right edge to resize (width is remembered)
+- **Outline panel** — a live document outline with jump-to-heading in its own
+  panel on the right; toggle with `F10` (View menu), also resizable
 - **Fullscreen Mode** — `F11` (View menu) toggles real fullscreen — the native
   window under Tauri, the Fullscreen API in the browser
-- **Writing aids** — focus mode (`Ctrl+Shift+F`, dims everything but the active
-  line) and typewriter mode (`Ctrl+Shift+T`, keeps the cursor vertically
-  centered), word/character count with reading time in the status bar
+- **Writing aids** — focus mode (`F8`, dims everything but the active line) and
+  typewriter mode (View menu, keeps the cursor vertically centered),
+  word/character count with reading time in the status bar
 - **Custom themes** — import a Typora-style CSS theme (Theme menu), applied to
   both the editor and HTML export
 - **Export** — standalone offline HTML (MathML math, inline mermaid SVG, alerts,

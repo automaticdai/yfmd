@@ -38,6 +38,7 @@ import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } fro
 import { SettingsDialog } from './app/SettingsDialog'
 import { createFileService, type FileService } from './services/file-service'
 import { Sidebar } from './sidebar/Sidebar'
+import { OutlinePanel } from './sidebar/OutlinePanel'
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -67,6 +68,7 @@ export default function App() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
+  const [outlineVisible, setOutlineVisible] = useState(false)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [renamePath, setRenamePath] = useState<string | null>(null)
   const [outline, setOutline] = useState<OutlineItem[]>([])
@@ -382,8 +384,8 @@ export default function App() {
           case 'F2': e.preventDefault(); if (selectedPath) setRenamePath(selectedPath); return
           case 'F4': e.preventDefault(); { const v = viewRef.current; if (v) openSearchPanel(v) } return
           case 'F8': e.preventDefault(); setFocusMode(v => !v); return
-          case 'F9': e.preventDefault(); setTypewriterMode(v => !v); return
-          case 'F10': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F9': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F10': e.preventDefault(); setOutlineVisible(v => !v); return
           case 'F11': e.preventDefault(); void toggleFullscreen(); return
         }
       }
@@ -532,6 +534,7 @@ export default function App() {
         break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
+      case 'toggle-outline': setOutlineVisible(v => !v); break
       case 'fullscreen': void toggleFullscreen(); break
       case 'source-mode': toggleSource(); break
     }
@@ -539,6 +542,8 @@ export default function App() {
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
+  if (sidebarVisible) checkedActions.add('toggle-sidebar')
+  if (outlineVisible) checkedActions.add('toggle-outline')
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
   if (alwaysOnTop) checkedActions.add('always-on-top')
@@ -552,8 +557,6 @@ export default function App() {
           <Sidebar
             tree={meta.tree}
             folderPath={meta.folderPath}
-            outline={outline}
-            defaultTab={settings.sidebarTab}
             width={settings.sidebarWidth}
             onWidthChange={w => setSettings(s => ({ ...s, sidebarWidth: w }))}
             selectedPath={selectedPath}
@@ -563,12 +566,6 @@ export default function App() {
             onNewFolder={path => void controllerRef.current?.createFolder(path)}
             onRenameRequest={setRenamePath}
             onDelete={path => void controllerRef.current?.deletePath(path)}
-            onJump={pos => {
-              const view = viewRef.current
-              if (!view) return
-              view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'start' }) })
-              view.focus()
-            }}
           />
         )}
         <main
@@ -590,6 +587,19 @@ export default function App() {
         >
           <div ref={hostRef} style={{ height: '100%' }} />
         </main>
+        {outlineVisible && (
+          <OutlinePanel
+            outline={outline}
+            width={settings.outlineWidth}
+            onWidthChange={w => setSettings(s => ({ ...s, outlineWidth: w }))}
+            onJump={pos => {
+              const view = viewRef.current
+              if (!view) return
+              view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'start' }) })
+              view.focus()
+            }}
+          />
+        )}
       </div>
       <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} stats={stats} />
       {confirmOpen && (
