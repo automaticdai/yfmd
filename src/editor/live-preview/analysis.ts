@@ -1,7 +1,18 @@
+import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Transaction } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
 import { findExcludedRanges, findExtensions, scanExtensionsIn, type ExtMatch } from './extensions'
 import { findMathRanges, type MathRange } from './math'
+
+/**
+ * True when the language parser advanced between two states. A large document
+ * parses only its first viewport synchronously; the rest of the syntax tree is
+ * filled in by async transactions that carry no `docChanged`, so tree-derived
+ * decorations must also rebuild when the tree identity changes.
+ */
+export function parseAdvanced(startState: EditorState, state: EditorState): boolean {
+  return syntaxTree(startState) !== syntaxTree(state)
+}
 
 /** Per-document analysis computed once per doc change and shared by the decoration providers. */
 export interface DocAnalysis {
@@ -17,9 +28,16 @@ export interface DocAnalysis {
 export const docAnalysisField = StateField.define<DocAnalysis>({
   create: state => ({ mathRanges: findMathRanges(state), extensions: findExtensions(state) }),
   update(analysis, tr) {
-    if (!tr.docChanged) return analysis
-    const mathRanges = findMathRanges(tr.state)
-    return { mathRanges, extensions: updateExtensions(analysis.extensions, tr, mathRanges) }
+    if (tr.docChanged) {
+      const mathRanges = findMathRanges(tr.state)
+      return { mathRanges, extensions: updateExtensions(analysis.extensions, tr, mathRanges) }
+    }
+    // Parser caught up on a later part of the document: re-scan so code fences
+    // and tables that only now exist in the tree exclude extension syntax.
+    if (parseAdvanced(tr.startState, tr.state)) {
+      return { mathRanges: analysis.mathRanges, extensions: findExtensions(tr.state) }
+    }
+    return analysis
   },
 })
 

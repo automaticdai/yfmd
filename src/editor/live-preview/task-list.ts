@@ -1,6 +1,7 @@
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Range, TransactionSpec } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view'
+import { parseAdvanced } from './analysis'
 import { selectionTouches } from './cursor-context'
 
 /** Find the TaskMarker at/around pos and produce the toggle change, or null. */
@@ -59,7 +60,9 @@ export const taskListExtension = ViewPlugin.fromClass(
     decorations: DecorationSet
     constructor(view: EditorView) { this.decorations = buildTaskDecorations(view.state) }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.selectionSet) this.decorations = buildTaskDecorations(u.state)
+      if (u.docChanged || u.selectionSet || parseAdvanced(u.startState, u.state)) {
+        this.decorations = buildTaskDecorations(u.state)
+      }
     }
   },
   { decorations: v => v.decorations },

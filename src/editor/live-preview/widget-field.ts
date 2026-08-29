@@ -9,7 +9,7 @@ import { imageResolver, rebuildWidgets, uiTheme } from './facets'
 import { MathWidget } from './math'
 import { MermaidWidget } from './mermaid-widget'
 import { TableWidget } from './table'
-import { getMathRanges } from './analysis'
+import { getMathRanges, parseAdvanced } from './analysis'
 
 export function childText(state: EditorState, node: SyntaxNode, type: string): string {
   const child = node.getChild(type)
@@ -143,6 +143,7 @@ export const widgetField = StateField.define<WidgetFieldValue>({
   update(value, tr) {
     if (
       tr.docChanged ||
+      parseAdvanced(tr.startState, tr.state) ||
       tr.effects.some(e => e.is(rebuildWidgets))
     ) {
       const full = buildFullWidgets(tr.state)
