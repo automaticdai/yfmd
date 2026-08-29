@@ -163,6 +163,9 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
             <SliderRow label={t('settings.sideMargin')} setting="sideMargin" value={settings.sideMargin} unit="rem"
               min={L.sideMargin.min} max={L.sideMargin.max} step={L.sideMargin.step}
               onInput={v => set('sideMargin', v)} />
+            <SliderRow label={t('settings.sidebarWidth')} setting="sidebarWidth" value={settings.sidebarWidth} unit="px"
+              min={L.sidebarWidth.min} max={L.sidebarWidth.max} step={L.sidebarWidth.step}
+              onInput={v => set('sidebarWidth', v)} />
           </div>
         )}
 

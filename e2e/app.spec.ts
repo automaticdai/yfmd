@@ -1,19 +1,44 @@
 import { expect, test } from '@playwright/test'
 import { docText, menuAction, openApp, setDoc } from './helpers'
 
-test('sidebar is hidden by default and F11 toggles it', async ({ page }) => {
+test('sidebar is hidden by default and F10 toggles it', async ({ page }) => {
   await openApp(page)
   await expect(page.locator('.sidebar')).toHaveCount(0)
-  await page.keyboard.press('F11')
+  await page.keyboard.press('F10')
   await expect(page.locator('.sidebar')).toBeVisible()
-  await page.keyboard.press('F11')
+  await page.keyboard.press('F10')
   await expect(page.locator('.sidebar')).toHaveCount(0)
+})
+
+test('the side panel can be resized by dragging its edge, and the width persists', async ({ page }) => {
+  await openApp(page)
+  await page.keyboard.press('F10')
+  const width = () => page.evaluate(() =>
+    document.querySelector('.sidebar')!.getBoundingClientRect().width)
+  expect(await width()).toBe(240)
+
+  const handle = page.locator('.sidebar-resizer')
+  const box = (await handle.boundingBox())!
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx + 80, cy, { steps: 8 })
+  await page.mouse.up()
+  const resized = await width()
+  expect(resized).toBeGreaterThanOrEqual(316)
+  expect(resized).toBeLessThanOrEqual(324)
+
+  await page.reload()
+  await expect(page.locator('.cm-content')).toBeVisible()
+  await page.keyboard.press('F10')
+  expect(await width()).toBe(resized)
 })
 
 test('outline lists headings and jumps on click', async ({ page }) => {
   await openApp(page)
   await setDoc(page, '# One\n\ntext\n\n## Two\n\nmore')
-  await page.keyboard.press('F11')
+  await page.keyboard.press('F10')
   await page.locator('.sidebar-tab[data-tab="outline"]').click()
   await expect(page.locator('.outline-item')).toHaveCount(2)
   await page.locator('.outline-item', { hasText: 'Two' }).click()

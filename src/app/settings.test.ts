@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, THEMES } from './settings'
+import { clampSidebarWidth, DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_LIMITS, THEMES } from './settings'
 
 // node environment: emulate localStorage
 class MemStorage {
@@ -33,13 +33,14 @@ describe('loadSettings', () => {
   })
   it('clamps numeric values and rejects bad enums', () => {
     storage.setItem('yfmd-settings', JSON.stringify({
-      theme: 'hotdog', maxWidth: 500, sideMargin: -2, fontSize: 'huge', lineHeight: 9,
+      theme: 'hotdog', maxWidth: 500, sideMargin: -2, sidebarWidth: 9999, fontSize: 'huge', lineHeight: 9,
       sidebarTab: 'bogus',
     }))
     const s = loadSettings()
     expect(s.theme).toBe('github')
     expect(s.maxWidth).toBe(80)
     expect(s.sideMargin).toBe(0)
+    expect(s.sidebarWidth).toBe(480)
     expect(s.fontSize).toBe(DEFAULT_SETTINGS.fontSize)
     expect(s.lineHeight).toBe(2.2)
     expect(s.sidebarTab).toBe('files')
@@ -81,5 +82,19 @@ describe('loadSettings', () => {
     storage.setItem('yfmd-theme', 'dark')
     saveSettings({ ...DEFAULT_SETTINGS, theme: 'newsprint' })
     expect(loadSettings().theme).toBe('newsprint')
+  })
+})
+
+describe('clampSidebarWidth', () => {
+  const { min, max } = SETTINGS_LIMITS.sidebarWidth
+  it('rounds to a whole pixel', () => {
+    expect(clampSidebarWidth(287.6)).toBe(288)
+  })
+  it('clamps to the allowed range', () => {
+    expect(clampSidebarWidth(0)).toBe(min)
+    expect(clampSidebarWidth(9999)).toBe(max)
+  })
+  it('falls back to the default for non-finite input', () => {
+    expect(clampSidebarWidth(Number.NaN)).toBe(DEFAULT_SETTINGS.sidebarWidth)
   })
 })

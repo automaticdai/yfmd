@@ -33,7 +33,10 @@ block your cursor touches reveals its raw markdown syntax for editing.
   and per-file removal buttons
 - **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
   text width, side margins, font size, line height, autosave, and code block line numbers
-- **Sidebar** — folder file tree and a live document outline with jump-to-heading
+- **Sidebar** — folder file tree and a live document outline with jump-to-heading;
+  toggle with `F10`, drag its right edge to resize (width is remembered)
+- **Fullscreen Mode** — `F11` (View menu) toggles real fullscreen — the native
+  window under Tauri, the Fullscreen API in the browser
 - **Writing aids** — focus mode (`Ctrl+Shift+F`, dims everything but the active
   line) and typewriter mode (`Ctrl+Shift+T`, keeps the cursor vertically
   centered), word/character count with reading time in the status bar
