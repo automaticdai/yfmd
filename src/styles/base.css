@@ -111,6 +111,7 @@ body {
 }
 .dirty-dot { color: var(--accent); }
 .source-badge { letter-spacing: 1px; color: var(--accent); }
+.readonly-badge { letter-spacing: 1px; color: var(--fg-muted); }
 .status-right { display: flex; align-items: center; gap: 12px; }
 .status-stats { font-variant-numeric: tabular-nums; }
 .cm-focus-mode .cm-line { opacity: 0.35; transition: opacity 0.12s; }

@@ -67,14 +67,17 @@ describe('MenuBar', () => {
     expect(calloutLabels).toEqual(['Note', 'Tip', 'Important', 'Warning', 'Caution'])
   })
 
-  it('includes Always on Top in the View menu', () => {
+  it('includes Always on Top and Read-Only Mode in the View menu', () => {
     const menus: MenuGroup[] = buildMenus([])
     const viewMenu = menus.find(m => m.title === 'View')!
-    const actions = viewMenu.items
-      .filter((item): item is { action: string; label: string } => 'action' in item)
-      .map(item => item.action)
+    const items = viewMenu.items
+      .filter((item): item is { action: string; label: string; shortcut?: string } => 'action' in item)
 
-    expect(actions).toContain('always-on-top')
+    expect(items.map(i => i.action)).toContain('always-on-top')
+
+    const readOnly = items.find(i => i.action === 'read-only')
+    expect(readOnly).toBeDefined()
+    expect(readOnly?.shortcut).toBeUndefined()   // menu-only toggle
   })
 
   it('binds F9/F10 to the panels and F11 to Fullscreen Mode in the View menu', () => {

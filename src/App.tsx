@@ -29,7 +29,7 @@ import {
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, readOnlyCompartment, readOnlyExtensions, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
 import { codeLineNumbersField } from './editor/code-line-numbers'
 import { writingModeExtensions } from './editor/writing-mode'
 import { extractOutline, type OutlineItem } from './outline/outline'
@@ -64,6 +64,7 @@ export default function App() {
   const [typewriterMode, setTypewriterMode] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -285,6 +286,13 @@ export default function App() {
       effects: codeLineNumbersCompartment.reconfigure(settings.codeLineNumbers ? codeLineNumbersField : []),
     })
   }, [settings.codeLineNumbers])
+
+  // read-only mode is an editor-only toggle, not a persisted setting
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: readOnlyCompartment.reconfigure(readOnly ? readOnlyExtensions() : []),
+    })
+  }, [readOnly])
 
   // keep the Fullscreen Mode toggle in sync when the browser leaves fullscreen (Esc, native F11)
   useEffect(() => {
@@ -537,6 +545,7 @@ export default function App() {
       case 'toggle-outline': setOutlineVisible(v => !v); break
       case 'fullscreen': void toggleFullscreen(); break
       case 'source-mode': toggleSource(); break
+      case 'read-only': setReadOnly(v => !v); break
     }
   }, [notify, quitApp, toggleSource, toggleFullscreen, customThemeCss, alwaysOnTop])
 
@@ -548,6 +557,7 @@ export default function App() {
   if (typewriterMode) checkedActions.add('typewriter-mode')
   if (alwaysOnTop) checkedActions.add('always-on-top')
   if (fullscreen) checkedActions.add('fullscreen')
+  if (readOnly) checkedActions.add('read-only')
 
   return (
     <div className="app">
@@ -601,7 +611,7 @@ export default function App() {
           />
         )}
       </div>
-      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} stats={stats} />
+      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} readOnly={readOnly} stats={stats} />
       {confirmOpen && (
         <ConfirmDialog
           fileName={fileName}

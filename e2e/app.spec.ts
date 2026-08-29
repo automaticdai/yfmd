@@ -59,6 +59,26 @@ test('the outline panel is separate from the file panel, lists headings, and jum
   await expect(page.locator('.outline-panel')).toHaveCount(0)
 })
 
+test('read-only mode blocks every document edit and shows a badge', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'hello')
+
+  await menuAction(page, 'View', 'read-only')
+  await expect(page.locator('.readonly-badge')).toBeVisible()
+
+  // both programmatic dispatches and menu commands are filtered out
+  await setDoc(page, 'REPLACED')
+  expect(await docText(page)).toBe('hello')
+  await menuAction(page, 'Format', 'bold')
+  expect(await docText(page)).toBe('hello')
+
+  // toggle off — edits apply again
+  await menuAction(page, 'View', 'read-only')
+  await expect(page.locator('.readonly-badge')).toHaveCount(0)
+  await setDoc(page, 'editable again')
+  expect(await docText(page)).toBe('editable again')
+})
+
 test('theme menu switches theme and persists', async ({ page }) => {
   await openApp(page)
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('github')

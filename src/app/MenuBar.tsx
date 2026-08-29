@@ -112,6 +112,7 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'toggle-outline', label: t('view.outline'), shortcut: 'F10' },
         { action: 'fullscreen', label: t('view.fullscreen'), shortcut: 'F11' },
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
+        { action: 'read-only', label: t('view.readOnly') },
         { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'F8' },
         { action: 'typewriter-mode', label: t('view.typewriterMode') },
         { action: 'always-on-top', label: t('view.alwaysOnTop') },
