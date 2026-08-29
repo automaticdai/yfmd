@@ -43,13 +43,13 @@ A **WYSIWYG** markdown editor: what you type renders *in place*, and the block y
 
 ## Tables & Table Creator
 
-Use **Edit → Table → Table Creator…** to create custom $m \times n$ tables:
+Use **Format → Table → Table Creator…** to create custom $m \times n$ tables:
 
 | Feature | Status | Shortcut / Menu |
 | :------ | :----: | :-------------- |
 | WYSIWYG Editing | Supported | Default Mode |
 | Source Code Mode | Supported | `Ctrl + /` |
-| Table Creator | Supported | `Edit → Table` |
+| Table Creator | Supported | `Format → Table` |
 | Math & KaTeX | Supported | `$$` block / `$` inline |
 | Mermaid Diagrams | Supported | ` ```mermaid ` |
 | HTML & PDF Export | Supported | `File → Export` |

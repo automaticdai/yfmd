@@ -53,6 +53,12 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'paste', label: t('edit.paste'), shortcut: 'Ctrl+V' },
         { action: 'paste-text-only', label: t('edit.pasteTextOnly'), shortcut: 'Ctrl+Shift+V' },
         { separator: true },
+        { action: 'find', label: t('edit.findReplace'), shortcut: 'F4' },
+      ],
+    },
+    {
+      title: t('menu.format'),
+      items: [
         { action: 'bold', label: t('edit.bold'), shortcut: 'Ctrl+B' },
         { action: 'italic', label: t('edit.italic'), shortcut: 'Ctrl+I' },
         { action: 'strike', label: t('edit.strikethrough'), shortcut: 'Ctrl+Shift+X' },
@@ -97,18 +103,18 @@ export function buildMenus(recent: string[]): MenuGroup[] {
         { action: 'math-block', label: t('edit.mathBlock') },
         { action: 'hr', label: t('edit.horizontalRule') },
         { action: 'toc', label: t('edit.toc') },
-        { separator: true },
-        { action: 'find', label: t('edit.findReplace'), shortcut: 'F4' },
       ],
     },
     {
       title: t('menu.view'),
       items: [
-        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'F10' },
+        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'F9' },
+        { action: 'toggle-outline', label: t('view.outline'), shortcut: 'F10' },
         { action: 'fullscreen', label: t('view.fullscreen'), shortcut: 'F11' },
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
+        { action: 'read-only', label: t('view.readOnly') },
         { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'F8' },
-        { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'F9' },
+        { action: 'typewriter-mode', label: t('view.typewriterMode') },
         { action: 'always-on-top', label: t('view.alwaysOnTop') },
       ],
     },
@@ -123,7 +129,15 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     },
     {
       title: t('menu.help'),
-      items: [{ action: 'about', label: t('help.about'), shortcut: 'F1' }],
+      items: [
+        { action: 'shortcuts', label: t('help.shortcuts') },
+        { action: 'markdown-guide', label: t('help.markdownGuide') },
+        { separator: true },
+        { action: 'report-issue', label: t('help.reportIssue') },
+        { action: 'check-updates', label: t('help.checkUpdates') },
+        { separator: true },
+        { action: 'about', label: t('help.about'), shortcut: 'F1' },
+      ],
     },
   ]
 }

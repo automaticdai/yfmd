@@ -4,7 +4,7 @@ A WYSIWYG markdown editor for the desktop, built with Tauri 2 and CodeMirror 6.
 What you type renders in place — headings, bold, math, diagrams, tables — and the
 block your cursor touches reveals its raw markdown syntax for editing.
 
-![yfmd editing a document, with the outline pane open in the sidebar](docs/screenshot.png)
+![yfmd editing a document, with the side panels open](docs/screenshot.png)
 
 ## Features
 
@@ -14,7 +14,7 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **GitHub Alert Callouts** — supports `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`,
   `> [!WARNING]`, and `> [!CAUTION]` with distinct colors and SVG title badges
 - **Interactive Tables & Table Creator** — render as real HTML tables; visual
-  $m \times n$ Table Creator dialog (`Edit → Table → Table Creator…`), table actions
+  $m \times n$ Table Creator dialog (`Format → Table → Table Creator…`), table actions
   (Add/Delete Row & Column), and auto-aligned pipe formatting
 - **Math** — inline `$…$` and block `$$…$$` rendered with KaTeX (currency-safe:
   `costs $5 and $10` stays text)
@@ -23,9 +23,9 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Task lists** — clickable checkboxes that update the source text
 - **Markdown extensions** — `==highlight==`, `^superscript^`, `~subscript~`,
   `:emoji:` shortcodes, and `[^n]` footnotes
-- **Images** — paste, drag-and-drop, or insert from the Edit menu
+- **Images** — paste, drag-and-drop, or insert from the Format menu
 - **Inline `#tags`** — styled and clickable in the rendered view
-- **Table of contents** — inserted from the Edit menu; heading anchors carry
+- **Table of contents** — inserted from the Format menu; heading anchors carry
   through to HTML export
 - **Frontmatter** — a leading `---` YAML block renders as one quiet metadata box
   instead of a rule, a list and a stray heading; excluded from exports
@@ -33,17 +33,23 @@ block your cursor touches reveals its raw markdown syntax for editing.
   and per-file removal buttons
 - **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
   text width, side margins, font size, line height, autosave, and code block line numbers
-- **Sidebar** — folder file tree and a live document outline with jump-to-heading;
-  toggle with `F10`, drag its right edge to resize (width is remembered)
+- **File panel** — folder file tree on the left; toggle with `F9`, drag its
+  right edge to resize (width is remembered)
+- **Outline panel** — a live document outline with jump-to-heading in its own
+  panel on the right; toggle with `F10` (View menu), also resizable
 - **Fullscreen Mode** — `F11` (View menu) toggles real fullscreen — the native
   window under Tauri, the Fullscreen API in the browser
-- **Writing aids** — focus mode (`Ctrl+Shift+F`, dims everything but the active
-  line) and typewriter mode (`Ctrl+Shift+T`, keeps the cursor vertically
-  centered), word/character count with reading time in the status bar
+- **Writing aids** — focus mode (`F8`, dims everything but the active line) and
+  typewriter mode (View menu, keeps the cursor vertically centered),
+  word/character count with reading time in the status bar
 - **Custom themes** — import a Typora-style CSS theme (Theme menu), applied to
   both the editor and HTML export
 - **Export** — standalone offline HTML (MathML math, inline mermaid SVG, alerts,
   inlined CSS/highlighting) and PDF via the system print dialog
+- **Read-Only Mode** — View menu; locks the document (no typing, menu edit
+  commands are inert), shows a `READ-ONLY` badge in the status bar
+- **Help menu** — a Keyboard Shortcuts reference dialog, "Markdown Guide" (opens
+  the built-in welcome document), Report an Issue, and Check for Updates
 - **Light/dark themes**, source-mode toggle (`Ctrl+/`), find/replace (`Ctrl+F`)
 
 The markdown text is always the single source of truth: rendering is a decoration

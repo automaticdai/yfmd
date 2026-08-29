@@ -1,23 +1,23 @@
 import { expect, test } from '@playwright/test'
 import { docText, menuAction, openApp, setDoc } from './helpers'
 
-test('sidebar is hidden by default and F10 toggles it', async ({ page }) => {
+test('file panel is hidden by default and F9 toggles it', async ({ page }) => {
   await openApp(page)
   await expect(page.locator('.sidebar')).toHaveCount(0)
-  await page.keyboard.press('F10')
+  await page.keyboard.press('F9')
   await expect(page.locator('.sidebar')).toBeVisible()
-  await page.keyboard.press('F10')
+  await page.keyboard.press('F9')
   await expect(page.locator('.sidebar')).toHaveCount(0)
 })
 
-test('the side panel can be resized by dragging its edge, and the width persists', async ({ page }) => {
+test('the file panel can be resized by dragging its edge, and the width persists', async ({ page }) => {
   await openApp(page)
-  await page.keyboard.press('F10')
+  await page.keyboard.press('F9')
   const width = () => page.evaluate(() =>
     document.querySelector('.sidebar')!.getBoundingClientRect().width)
   expect(await width()).toBe(240)
 
-  const handle = page.locator('.sidebar-resizer')
+  const handle = page.locator('.sidebar .panel-resizer')
   const box = (await handle.boundingBox())!
   const cx = box.x + box.width / 2
   const cy = box.y + box.height / 2
@@ -31,21 +31,84 @@ test('the side panel can be resized by dragging its edge, and the width persists
 
   await page.reload()
   await expect(page.locator('.cm-content')).toBeVisible()
-  await page.keyboard.press('F10')
+  await page.keyboard.press('F9')
   expect(await width()).toBe(resized)
 })
 
-test('outline lists headings and jumps on click', async ({ page }) => {
+test('the outline panel is separate from the file panel, lists headings, and jumps on click', async ({ page }) => {
   await openApp(page)
   await setDoc(page, '# One\n\ntext\n\n## Two\n\nmore')
+
+  // outline lives in its own right-hand panel now, not a tab in the file panel
+  await page.keyboard.press('F9')
+  await expect(page.locator('.sidebar')).toBeVisible()
+  await expect(page.locator('.sidebar .sidebar-tab')).toHaveCount(0)
+  await expect(page.locator('.outline-panel')).toHaveCount(0)
+
   await page.keyboard.press('F10')
-  await page.locator('.sidebar-tab[data-tab="outline"]').click()
-  await expect(page.locator('.outline-item')).toHaveCount(2)
-  await page.locator('.outline-item', { hasText: 'Two' }).click()
+  await expect(page.locator('.outline-panel')).toBeVisible()
+  await expect(page.locator('.outline-panel .outline-item')).toHaveCount(2)
+
+  await page.locator('.outline-panel .outline-item', { hasText: 'Two' }).click()
   const head = await page.evaluate(() =>
     (window as unknown as { __yfmdView: { state: { selection: { main: { head: number } } } } })
       .__yfmdView.state.selection.main.head)
   expect(head).toBe(13)
+
+  await page.keyboard.press('F10')
+  await expect(page.locator('.outline-panel')).toHaveCount(0)
+})
+
+test('read-only mode blocks every document edit and shows a badge', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'hello')
+
+  await menuAction(page, 'View', 'read-only')
+  await expect(page.locator('.readonly-badge')).toBeVisible()
+
+  // both programmatic dispatches and menu commands are filtered out
+  await setDoc(page, 'REPLACED')
+  expect(await docText(page)).toBe('hello')
+  await menuAction(page, 'Format', 'bold')
+  expect(await docText(page)).toBe('hello')
+
+  // toggle off — edits apply again
+  await menuAction(page, 'View', 'read-only')
+  await expect(page.locator('.readonly-badge')).toHaveCount(0)
+  await setDoc(page, 'editable again')
+  expect(await docText(page)).toBe('editable again')
+})
+
+test('Help menu: Keyboard Shortcuts dialog, Markdown Guide, and external links', async ({ page }) => {
+  await page.addInitScript(() => {
+    ;(window as unknown as { __opened: string[] }).__opened = []
+    window.open = (url?: string | URL) => {
+      ;(window as unknown as { __opened: string[] }).__opened.push(String(url))
+      return null
+    }
+  })
+  await openApp(page)
+
+  // Keyboard Shortcuts dialog
+  await menuAction(page, 'Help', 'shortcuts')
+  await expect(page.locator('.shortcuts-dialog')).toBeVisible()
+  await expect(page.locator('.shortcuts-dialog .shortcut-keys kbd', { hasText: 'Ctrl' }).first()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.shortcuts-dialog')).toHaveCount(0)
+
+  // Markdown Guide loads the bundled welcome doc as a fresh untitled buffer,
+  // through the dirty-discard guard
+  await setDoc(page, 'scratch text')
+  await menuAction(page, 'Help', 'markdown-guide')
+  await page.locator('[data-choice="discard"]').click()
+  expect(await docText(page)).toContain('# Welcome to yfmd')
+
+  // external links go through window.open
+  await menuAction(page, 'Help', 'report-issue')
+  await menuAction(page, 'Help', 'check-updates')
+  const opened = await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened)
+  expect(opened.some(u => u.endsWith('/issues'))).toBe(true)
+  expect(opened.some(u => u.endsWith('/releases'))).toBe(true)
 })
 
 test('theme menu switches theme and persists', async ({ page }) => {

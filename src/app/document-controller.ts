@@ -42,9 +42,10 @@ export class DocumentController {
     return true
   }
 
-  async newFile(): Promise<void> {
+  /** Start a fresh untitled document, optionally pre-filled (e.g. the Markdown guide). */
+  async newFile(content = ''): Promise<void> {
     if (!(await this.guardDirty())) return
-    this.host.setText('')
+    this.host.setText(content)
     this.meta.path = null
     this.meta.dirty = false
     this.emit()

@@ -5,6 +5,7 @@ import { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
 import { AboutDialog } from './app/AboutDialog'
+import { ShortcutsDialog } from './app/ShortcutsDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
 import { TableCreatorDialog } from './app/TableCreatorDialog'
 import { RenameDialog } from './app/RenameDialog'
@@ -29,7 +30,7 @@ import {
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
 import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, readOnlyCompartment, readOnlyExtensions, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
 import { codeLineNumbersField } from './editor/code-line-numbers'
 import { writingModeExtensions } from './editor/writing-mode'
 import { extractOutline, type OutlineItem } from './outline/outline'
@@ -38,6 +39,7 @@ import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } fro
 import { SettingsDialog } from './app/SettingsDialog'
 import { createFileService, type FileService } from './services/file-service'
 import { Sidebar } from './sidebar/Sidebar'
+import { OutlinePanel } from './sidebar/OutlinePanel'
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -58,15 +60,18 @@ export default function App() {
   settingsRef.current = settings
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [tableCreatorOpen, setTableCreatorOpen] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sidebarVisible, setSidebarVisible] = useState(false)
+  const [outlineVisible, setOutlineVisible] = useState(false)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [renamePath, setRenamePath] = useState<string | null>(null)
   const [outline, setOutline] = useState<OutlineItem[]>([])
@@ -284,6 +289,13 @@ export default function App() {
     })
   }, [settings.codeLineNumbers])
 
+  // read-only mode is an editor-only toggle, not a persisted setting
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: readOnlyCompartment.reconfigure(readOnly ? readOnlyExtensions() : []),
+    })
+  }, [readOnly])
+
   // keep the Fullscreen Mode toggle in sync when the browser leaves fullscreen (Esc, native F11)
   useEffect(() => {
     if ('__TAURI_INTERNALS__' in window) return
@@ -382,8 +394,8 @@ export default function App() {
           case 'F2': e.preventDefault(); if (selectedPath) setRenamePath(selectedPath); return
           case 'F4': e.preventDefault(); { const v = viewRef.current; if (v) openSearchPanel(v) } return
           case 'F8': e.preventDefault(); setFocusMode(v => !v); return
-          case 'F9': e.preventDefault(); setTypewriterMode(v => !v); return
-          case 'F10': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F9': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F10': e.preventDefault(); setOutlineVisible(v => !v); return
           case 'F11': e.preventDefault(); void toggleFullscreen(); return
         }
       }
@@ -501,6 +513,10 @@ export default function App() {
       case 'find': if (view) { openSearchPanel(view) } break
       case 'settings': setSettingsOpen(true); break
       case 'about': setAboutOpen(true); break
+      case 'shortcuts': setShortcutsOpen(true); break
+      case 'markdown-guide': void c?.newFile(welcome); break
+      case 'report-issue': openExternal('https://github.com/automaticdai/yfmd/issues'); break
+      case 'check-updates': openExternal('https://github.com/automaticdai/yfmd/releases'); break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
       case 'always-on-top': {
@@ -532,17 +548,22 @@ export default function App() {
         break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
+      case 'toggle-outline': setOutlineVisible(v => !v); break
       case 'fullscreen': void toggleFullscreen(); break
       case 'source-mode': toggleSource(); break
+      case 'read-only': setReadOnly(v => !v); break
     }
-  }, [notify, quitApp, toggleSource, toggleFullscreen, customThemeCss, alwaysOnTop])
+  }, [notify, quitApp, toggleSource, toggleFullscreen, openExternal, customThemeCss, alwaysOnTop])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
+  if (sidebarVisible) checkedActions.add('toggle-sidebar')
+  if (outlineVisible) checkedActions.add('toggle-outline')
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
   if (alwaysOnTop) checkedActions.add('always-on-top')
   if (fullscreen) checkedActions.add('fullscreen')
+  if (readOnly) checkedActions.add('read-only')
 
   return (
     <div className="app">
@@ -552,8 +573,6 @@ export default function App() {
           <Sidebar
             tree={meta.tree}
             folderPath={meta.folderPath}
-            outline={outline}
-            defaultTab={settings.sidebarTab}
             width={settings.sidebarWidth}
             onWidthChange={w => setSettings(s => ({ ...s, sidebarWidth: w }))}
             selectedPath={selectedPath}
@@ -563,12 +582,6 @@ export default function App() {
             onNewFolder={path => void controllerRef.current?.createFolder(path)}
             onRenameRequest={setRenamePath}
             onDelete={path => void controllerRef.current?.deletePath(path)}
-            onJump={pos => {
-              const view = viewRef.current
-              if (!view) return
-              view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'start' }) })
-              view.focus()
-            }}
           />
         )}
         <main
@@ -590,8 +603,21 @@ export default function App() {
         >
           <div ref={hostRef} style={{ height: '100%' }} />
         </main>
+        {outlineVisible && (
+          <OutlinePanel
+            outline={outline}
+            width={settings.outlineWidth}
+            onWidthChange={w => setSettings(s => ({ ...s, outlineWidth: w }))}
+            onJump={pos => {
+              const view = viewRef.current
+              if (!view) return
+              view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'start' }) })
+              view.focus()
+            }}
+          />
+        )}
       </div>
-      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} stats={stats} />
+      <StatusBar path={meta.path} dirty={meta.dirty} sourceMode={sourceMode} readOnly={readOnly} stats={stats} />
       {confirmOpen && (
         <ConfirmDialog
           fileName={fileName}
@@ -619,6 +645,7 @@ export default function App() {
         />
       )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       {renamePath !== null && (
         <RenameDialog
           name={renamePath.slice(renamePath.lastIndexOf('/') + 1)}

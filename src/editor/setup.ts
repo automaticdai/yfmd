@@ -3,7 +3,7 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { syntaxHighlighting } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
 import { search, searchKeymap } from '@codemirror/search'
-import { Compartment, type Extension, Prec } from '@codemirror/state'
+import { Compartment, EditorState, type Extension, Prec } from '@codemirror/state'
 import { EditorView, drawSelection, keymap } from '@codemirror/view'
 import { autoPairHandler } from './auto-pair'
 import { headingCommand } from './block-commands'
@@ -27,6 +27,18 @@ export const imageSaverCompartment = new Compartment()
 export const themeCompartment = new Compartment()
 export const writingModeCompartment = new Compartment()
 export const codeLineNumbersCompartment = new Compartment()
+export const readOnlyCompartment = new Compartment()
+
+/** Lock the document: no typing (non-editable), and every document change is
+ *  filtered out so menu commands can't mutate it either. Selection, copy,
+ *  scrolling and effect-only transactions still work. */
+export function readOnlyExtensions(): Extension {
+  return [
+    EditorState.readOnly.of(true),
+    EditorView.editable.of(false),
+    EditorState.changeFilter.of(() => false),
+  ]
+}
 
 export function createExtensions(opts: EditorOptions): Extension[] {
   return [
@@ -61,6 +73,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     themeCompartment.of([]),
     writingModeCompartment.of([]),
     codeLineNumbersCompartment.of([]),
+    readOnlyCompartment.of([]),
     EditorView.updateListener.of(u => {
       if (u.docChanged) opts.onDocChanged()
     }),
