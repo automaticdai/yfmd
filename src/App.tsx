@@ -62,6 +62,7 @@ export default function App() {
   const [focusMode, setFocusMode] = useState(false)
   const [typewriterMode, setTypewriterMode] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -121,6 +122,26 @@ export default function App() {
     setSourceMode(next)
     setLivePreview(view, { openExternal }, !next)
   }, [openExternal])
+
+  /** Toggle real fullscreen: the Tauri window natively, the browser via the Fullscreen API. */
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if ('__TAURI_INTERNALS__' in window) {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        const win = getCurrentWindow()
+        const next = !(await win.isFullscreen())
+        await win.setFullscreen(next)
+        setFullscreen(next)
+      } else if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+        // state is synced by the 'fullscreenchange' listener below
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      // fullscreen can be refused (no user gesture, embedded frame) — ignore
+    }
+  }, [])
 
   // mount editor + services once
   useEffect(() => {
@@ -263,6 +284,14 @@ export default function App() {
     })
   }, [settings.codeLineNumbers])
 
+  // keep the Fullscreen Mode toggle in sync when the browser leaves fullscreen (Esc, native F11)
+  useEffect(() => {
+    if ('__TAURI_INTERNALS__' in window) return
+    const onChange = () => setFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
   // apply (or clear) the imported theme's palette on the document root
   useEffect(() => {
     const root = document.documentElement
@@ -354,7 +383,8 @@ export default function App() {
           case 'F4': e.preventDefault(); { const v = viewRef.current; if (v) openSearchPanel(v) } return
           case 'F8': e.preventDefault(); setFocusMode(v => !v); return
           case 'F9': e.preventDefault(); setTypewriterMode(v => !v); return
-          case 'F11': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F10': e.preventDefault(); setSidebarVisible(v => !v); return
+          case 'F11': e.preventDefault(); void toggleFullscreen(); return
         }
       }
       if (!(e.ctrlKey || e.metaKey)) return
@@ -370,7 +400,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [quitApp, selectedPath])
+  }, [quitApp, selectedPath, toggleFullscreen])
 
   const onAction = useCallback((action: string) => {
     const view = viewRef.current
@@ -502,15 +532,17 @@ export default function App() {
         break
       case 'quit': void quitApp(); break
       case 'toggle-sidebar': setSidebarVisible(v => !v); break
+      case 'fullscreen': void toggleFullscreen(); break
       case 'source-mode': toggleSource(); break
     }
-  }, [notify, quitApp, toggleSource, customThemeCss, alwaysOnTop])
+  }, [notify, quitApp, toggleSource, toggleFullscreen, customThemeCss, alwaysOnTop])
 
   const fileName = meta.path ? meta.path.slice(meta.path.lastIndexOf('/') + 1) : 'untitled'
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
   if (alwaysOnTop) checkedActions.add('always-on-top')
+  if (fullscreen) checkedActions.add('fullscreen')
 
   return (
     <div className="app">
@@ -522,6 +554,8 @@ export default function App() {
             folderPath={meta.folderPath}
             outline={outline}
             defaultTab={settings.sidebarTab}
+            width={settings.sidebarWidth}
+            onWidthChange={w => setSettings(s => ({ ...s, sidebarWidth: w }))}
             selectedPath={selectedPath}
             onSelect={setSelectedPath}
             onOpenFile={path => void controllerRef.current?.openPath(path)}

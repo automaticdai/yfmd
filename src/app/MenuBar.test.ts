@@ -77,6 +77,20 @@ describe('MenuBar', () => {
     expect(actions).toContain('always-on-top')
   })
 
+  it('binds F10 to the side panel and F11 to Fullscreen Mode in the View menu', () => {
+    const menus: MenuGroup[] = buildMenus([])
+    const viewMenu = menus.find(m => m.title === 'View')!
+    const byAction = (action: string) =>
+      viewMenu.items.find(
+        (item): item is { action: string; label: string; shortcut?: string } =>
+          'action' in item && item.action === action,
+      )
+
+    expect(byAction('toggle-sidebar')?.shortcut).toBe('F10')
+    expect(byAction('fullscreen')).toBeDefined()
+    expect(byAction('fullscreen')?.shortcut).toBe('F11')
+  })
+
   it('includes Undo/Redo and clipboard actions in the Edit menu', () => {
     const menus: MenuGroup[] = buildMenus([])
     const editMenu = menus.find(m => m.title === 'Edit')!

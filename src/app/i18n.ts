@@ -72,7 +72,8 @@ const en = {
   'edit.toc': 'Table of Contents',
   'edit.findReplace': 'Find / Replace',
 
-  'view.toggleSidebar': 'Toggle Sidebar',
+  'view.toggleSidebar': 'Toggle Side Panel',
+  'view.fullscreen': 'Fullscreen Mode',
   'view.sourceMode': 'Source Mode',
   'view.focusMode': 'Focus Mode',
   'view.typewriterMode': 'Typewriter Mode',
@@ -117,6 +118,7 @@ const en = {
   'settings.codeFont': 'Code font',
   'settings.maxWidth': 'Max text width',
   'settings.sideMargin': 'Side margins',
+  'settings.sidebarWidth': 'Side panel width',
   'settings.fontSize': 'Font size',
   'settings.lineHeight': 'Line height',
   'settings.autosave': 'Autosave',
@@ -213,6 +215,7 @@ const zhCN: Record<MessageKey, string> = {
   'edit.findReplace': '查找 / 替换',
 
   'view.toggleSidebar': '切换侧边栏',
+  'view.fullscreen': '全屏模式',
   'view.sourceMode': '源码模式',
   'view.focusMode': '专注模式',
   'view.typewriterMode': '打字机模式',
@@ -257,6 +260,7 @@ const zhCN: Record<MessageKey, string> = {
   'settings.codeFont': '代码字体',
   'settings.maxWidth': '最大文本宽度',
   'settings.sideMargin': '侧边距',
+  'settings.sidebarWidth': '侧边栏宽度',
   'settings.fontSize': '字号',
   'settings.lineHeight': '行高',
   'settings.autosave': '自动保存',

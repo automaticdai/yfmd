@@ -5,7 +5,7 @@ import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 
-import { getMathRanges } from './live-preview/analysis'
+import { getMathRanges, parseAdvanced } from './live-preview/analysis'
 import type { MathRange } from './live-preview/math'
 
 const TAG = /(^|[\s(])(#[\p{L}\p{N}_][\p{L}\p{N}_-]*)/gu
@@ -48,7 +48,7 @@ function buildTags(state: EditorState): DecorationSet {
 const tagField = StateField.define<DecorationSet>({
   create: buildTags,
   update(deco, tr) {
-    if (tr.docChanged) return buildTags(tr.state)
+    if (tr.docChanged || parseAdvanced(tr.startState, tr.state)) return buildTags(tr.state)
     return deco.map(tr.changes)
   },
   provide: f => EditorView.decorations.from(f),

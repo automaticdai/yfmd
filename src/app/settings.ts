@@ -19,6 +19,7 @@ export interface Settings {
   codeFont: string      // CODE_FONTS id
   maxWidth: number      // rem
   sideMargin: number    // rem
+  sidebarWidth: number  // px
   fontSize: number      // px
   lineHeight: number
   autosave: boolean
@@ -33,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   codeFont: 'default',
   maxWidth: 46,
   sideMargin: 3,
+  sidebarWidth: 240,
   fontSize: 16,
   lineHeight: 1.7,
   autosave: false,
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const SETTINGS_LIMITS = {
   maxWidth: { min: 40, max: 80, step: 1 },
   sideMargin: { min: 0, max: 8, step: 0.5 },
+  sidebarWidth: { min: 180, max: 480, step: 10 },
   fontSize: { min: 12, max: 24, step: 1 },
   lineHeight: { min: 1.2, max: 2.2, step: 0.05 },
 } as const
@@ -93,6 +96,7 @@ export function loadSettings(): Settings {
     codeFont: fontId(raw.codeFont, CODE_FONTS, D.codeFont),
     maxWidth: num(raw.maxWidth, D.maxWidth, L.maxWidth.min, L.maxWidth.max),
     sideMargin: num(raw.sideMargin, D.sideMargin, L.sideMargin.min, L.sideMargin.max),
+    sidebarWidth: num(raw.sidebarWidth, D.sidebarWidth, L.sidebarWidth.min, L.sidebarWidth.max),
     fontSize: num(raw.fontSize, D.fontSize, L.fontSize.min, L.fontSize.max),
     lineHeight: num(raw.lineHeight, D.lineHeight, L.lineHeight.min, L.lineHeight.max),
     autosave: typeof raw.autosave === 'boolean' ? raw.autosave : D.autosave,
@@ -103,4 +107,10 @@ export function loadSettings(): Settings {
 
 export function saveSettings(s: Settings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+}
+
+/** Round and clamp a dragged side-panel width to the allowed range. */
+export function clampSidebarWidth(width: number): number {
+  const L = SETTINGS_LIMITS.sidebarWidth
+  return Math.round(num(width, DEFAULT_SETTINGS.sidebarWidth, L.min, L.max))
 }

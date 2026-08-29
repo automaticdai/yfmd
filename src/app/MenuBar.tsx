@@ -104,7 +104,8 @@ export function buildMenus(recent: string[]): MenuGroup[] {
     {
       title: t('menu.view'),
       items: [
-        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'F11' },
+        { action: 'toggle-sidebar', label: t('view.toggleSidebar'), shortcut: 'F10' },
+        { action: 'fullscreen', label: t('view.fullscreen'), shortcut: 'F11' },
         { action: 'source-mode', label: t('view.sourceMode'), shortcut: 'Ctrl+/' },
         { action: 'focus-mode', label: t('view.focusMode'), shortcut: 'F8' },
         { action: 'typewriter-mode', label: t('view.typewriterMode'), shortcut: 'F9' },

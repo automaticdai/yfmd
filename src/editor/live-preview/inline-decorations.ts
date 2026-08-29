@@ -3,7 +3,7 @@ import type { EditorState, Range } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import { frontmatterRange, insideFrontmatter } from '../frontmatter'
 import { selectionTouches } from './cursor-context'
-import { getMathRanges } from './analysis'
+import { getMathRanges, parseAdvanced } from './analysis'
 
 import { WidgetType } from '@codemirror/view'
 
@@ -250,8 +250,9 @@ export const inlineDecorations = ViewPlugin.fromClass(
       this.lines = applied.lines
     }
     update(u: ViewUpdate) {
-      if (u.docChanged) this.structure = buildInlineStructure(u.state)
-      if (u.docChanged || u.selectionSet) {
+      const reparsed = parseAdvanced(u.startState, u.state)
+      if (u.docChanged || reparsed) this.structure = buildInlineStructure(u.state)
+      if (u.docChanged || reparsed || u.selectionSet) {
         const applied = applyInlineSelection(this.structure, u.state)
         this.hides = applied.hides
         this.lines = applied.lines
