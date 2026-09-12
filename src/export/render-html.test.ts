@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderBodyHtml } from './render-html'
+import { renderBodyHtml, renderExportHtml } from './render-html'
 
 describe('renderBodyHtml', () => {
   it('renders GFM basics', () => {
@@ -76,3 +76,85 @@ describe('renderBodyHtml', () => {
   })
 })
 
+
+describe('renderBodyHtml footnotes', () => {
+  it('numbers references by order of first appearance', () => {
+    const html = renderBodyHtml('x[^b] y[^a] z[^b]')
+    expect(html).toContain('>1</a>')
+    expect(html).toContain('>2</a>')
+    expect(html).not.toContain('>b</a>')
+  })
+
+  it('collects definitions into a footnotes list instead of leaving them as paragraphs', () => {
+    const html = renderBodyHtml('claim[^a]\n\n[^a]: the source\n')
+    expect(html).toContain('class="footnotes"')
+    expect(html).toContain('id="fn:a"')
+    expect(html).toContain('the source')
+    expect(html).not.toContain('<p>[^a]: the source</p>')
+  })
+
+  it('links a definition back to its reference', () => {
+    const html = renderBodyHtml('claim[^a]\n\n[^a]: the source\n')
+    expect(html).toContain('href="#fnref:a"')
+    expect(html).toContain('href="#fn:a"')
+  })
+
+  it('renders inline markdown inside a definition', () => {
+    expect(renderBodyHtml('c[^a]\n\n[^a]: see **bold**\n')).toContain('<strong>bold</strong>')
+  })
+
+  it('orders the list by footnote number, not by definition order', () => {
+    const html = renderBodyHtml('x[^b] y[^a]\n\n[^a]: second\n[^b]: first\n')
+    expect(html.indexOf('id="fn:b"')).toBeLessThan(html.indexOf('id="fn:a"'))
+  })
+
+  it('does not pair the caret in a footnote marker with a real superscript', () => {
+    const html = renderBodyHtml('claim[^a] with x^2^')
+    expect(html).toContain('<sup>2</sup>')
+    expect(html).not.toContain('a] with x')
+  })
+
+  it('leaves footnote syntax literal when references are disabled', () => {
+    const html = renderBodyHtml('claim[^a]\n\n[^a]: the source\n', { references: false })
+    expect(html).toContain('[^a]')
+    expect(html).not.toContain('class="footnotes"')
+  })
+})
+
+describe('renderBodyHtml syntax toggles', () => {
+  it('leaves ==highlight== literal when highlight is disabled', () => {
+    const html = renderBodyHtml('==hi== x^2^', { highlight: false })
+    expect(html).not.toContain('<mark>')
+    expect(html).toContain('==hi==')
+    expect(html).toContain('<sup>2</sup>')
+  })
+
+  it('leaves ^sup^ and ~sub~ literal when scripts are disabled', () => {
+    const html = renderBodyHtml('==hi== x^2^ H~2~O', { scripts: false })
+    expect(html).not.toContain('<sup>')
+    expect(html).not.toContain('<sub>')
+    expect(html).toContain('<mark>hi</mark>')
+  })
+
+  it('renders everything by default', () => {
+    const html = renderBodyHtml('==hi== x^2^ H~2~O c[^a]')
+    expect(html).toContain('<mark>hi</mark>')
+    expect(html).toContain('<sup>2</sup>')
+    expect(html).toContain('<sub>2</sub>')
+  })
+})
+
+describe('renderExportHtml syntax toggles', () => {
+  it('honours disabled syntaxes in the standalone document', async () => {
+    const html = await renderExportHtml('==hi== c[^a]\n\n[^a]: note\n', 'T', '', { highlight: false })
+    expect(html).toContain('==hi==')
+    expect(html).not.toContain('<mark>')
+    expect(html).toContain('class="footnotes"')
+  })
+
+  it('renders every syntax when no options are given', async () => {
+    const html = await renderExportHtml('==hi== c[^a]\n\n[^a]: note\n', 'T')
+    expect(html).toContain('<mark>hi</mark>')
+    expect(html).toContain('class="footnotes"')
+  })
+})

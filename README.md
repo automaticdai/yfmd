@@ -21,8 +21,14 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Mermaid diagrams** — fenced ` ```mermaid ` blocks render as SVG, with inline
   error boxes for invalid diagrams
 - **Task lists** — clickable checkboxes that update the source text
-- **Markdown extensions** — `==highlight==`, `^superscript^`, `~subscript~`,
-  `:emoji:` shortcodes, and `[^n]` footnotes
+- **Markdown extensions** — `==highlight==`, `^superscript^`, `~subscript~`, and
+  `:emoji:` shortcodes
+- **References** — `[^id]` markers render as numbered superscripts and `[^id]: text`
+  definitions as a numbered reference list, numbered by order of first reference;
+  HTML export collects them into a footnotes section with back-links
+- **Syntax support toggles** — a Settings tab switches References, Highlight, and
+  Superscript/subscript on or off independently (all on by default), in both the
+  editor and the exports
 - **Images** — paste, drag-and-drop, or insert from the Format menu
 - **Inline `#tags`** — styled and clickable in the rendered view
 - **Table of contents** — inserted from the Format menu; heading anchors carry
@@ -32,7 +38,8 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Recent Files Management** — sub-menu in File menu with smart path disambiguation
   and per-file removal buttons
 - **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
-  text width, side margins, font size, line height, autosave, and code block line numbers
+  text width, side margins, font size, line height, autosave, code block line numbers,
+  and which optional markdown syntaxes are rendered
 - **File panel** — folder file tree on the left; toggle with `F9`, drag its
   right edge to resize (width is remembered)
 - **Outline panel** — a live document outline with jump-to-heading in its own

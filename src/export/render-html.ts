@@ -4,12 +4,21 @@ import katex from 'katex'
 import MarkdownIt from 'markdown-it'
 import type { RenderRule } from 'markdown-it/lib/renderer.mjs'
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
+import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
+import type Token from 'markdown-it/lib/token.mjs'
 import mermaid from 'mermaid'
 import { stripFrontmatter } from '../editor/frontmatter'
 import { ALERT_ICONS, ALERT_LABELS, type AlertKind } from '../editor/live-preview/inline-decorations'
+import { DEFAULT_SYNTAX_OPTIONS, type SyntaxOptions } from '../editor/live-preview/facets'
 import { EMOJI } from '../editor/markdown-extensions'
 import { slugify } from '../outline/outline'
+
+/** Which optional syntaxes this render pass should honour, carried on the markdown-it env. */
+function syntax(env: unknown): SyntaxOptions {
+  const s = (env as { syntax?: Partial<SyntaxOptions> } | undefined)?.syntax
+  return { ...DEFAULT_SYNTAX_OPTIONS, ...s }
+}
 
 function mathInlineRule(state: StateInline, silent: boolean): boolean {
   const { src, pos } = state
@@ -84,6 +93,7 @@ function taskListPlugin(md: MarkdownIt): void {
 }
 
 function markRule(state: StateInline, silent: boolean): boolean {
+  if (!syntax(state.env).highlight) return false
   if (!state.src.startsWith('==', state.pos)) return false
   const end = state.src.indexOf('==', state.pos + 2)
   if (end === -1) return false
@@ -98,6 +108,7 @@ function markRule(state: StateInline, silent: boolean): boolean {
 }
 
 function supRule(state: StateInline, silent: boolean): boolean {
+  if (!syntax(state.env).scripts) return false
   if (state.src[state.pos] !== '^' || state.src[state.pos + 1] === '^') return false
   const end = state.src.indexOf('^', state.pos + 1)
   if (end === -1) return false
@@ -112,6 +123,7 @@ function supRule(state: StateInline, silent: boolean): boolean {
 }
 
 function subRule(state: StateInline, silent: boolean): boolean {
+  if (!syntax(state.env).scripts) return false
   if (state.src[state.pos] !== '~' || state.src[state.pos + 1] === '~') return false
   const end = state.src.indexOf('~', state.pos + 1)
   if (end === -1) return false
@@ -138,6 +150,7 @@ function emojiRule(state: StateInline, silent: boolean): boolean {
 }
 
 function footnoteRefRule(state: StateInline, silent: boolean): boolean {
+  if (!syntax(state.env).references) return false
   if (!state.src.startsWith('[^', state.pos)) return false
   const end = state.src.indexOf(']', state.pos + 2)
   if (end === -1) return false
@@ -149,6 +162,74 @@ function footnoteRefRule(state: StateInline, silent: boolean): boolean {
   }
   state.pos = end + 1
   return true
+}
+
+const DEF_LINE = /^\[\^([\w-]+)\]:[ \t]*(.*)$/
+
+/** `[^id]: text` on its own line — captured here so it never renders as a paragraph. */
+function footnoteDefRule(state: StateBlock, startLine: number, _endLine: number, silent: boolean): boolean {
+  if (!syntax(state.env).references) return false
+  const start = state.bMarks[startLine] + state.tShift[startLine]
+  const max = state.eMarks[startLine]
+  const m = DEF_LINE.exec(state.src.slice(start, max))
+  if (!m) return false
+  if (silent) return true
+
+  const open = state.push('footnote_def_open', 'li', 1)
+  open.meta = { id: m[1] }
+  const inline = state.push('inline', '', 0)
+  inline.content = m[2]
+  inline.children = []
+  inline.map = [startLine, startLine + 1]
+  const close = state.push('footnote_def_close', 'li', -1)
+  close.meta = { id: m[1] }
+
+  state.line = startLine + 1
+  return true
+}
+
+/**
+ * Numbers every footnote by order of first reference, then lifts the definition
+ * tokens out of the document flow into one ordered list at the end.
+ */
+function footnoteTailRule(state: StateCore): void {
+  if (!syntax(state.env).references) return
+  const numbers = new Map<string, number>()
+  const numberOf = (id: string) => {
+    let n = numbers.get(id)
+    if (n === undefined) { n = numbers.size + 1; numbers.set(id, n) }
+    return n
+  }
+
+  for (const token of state.tokens) {
+    if (token.type !== 'inline') continue
+    for (const child of token.children ?? []) {
+      if (child.type === 'footnote_ref') {
+        const meta = child.meta as { id: string; num?: number; first?: boolean }
+        meta.first = !numbers.has(meta.id)
+        meta.num = numberOf(meta.id)
+      }
+    }
+  }
+
+  // Pull each definition's [open, inline, close] triple out of the body.
+  const body: Token[] = []
+  const defs: Array<{ id: string; tokens: Token[] }> = []
+  for (let i = 0; i < state.tokens.length; i++) {
+    const token = state.tokens[i]
+    if (token.type !== 'footnote_def_open') { body.push(token); continue }
+    const id = (token.meta as { id: string }).id
+    const end = state.tokens.findIndex((t, j) => j > i && t.type === 'footnote_def_close')
+    if (end === -1) { body.push(token); continue }
+    defs.push({ id, tokens: state.tokens.slice(i, end + 1) })
+    i = end
+  }
+  if (defs.length === 0) { state.tokens = body; return }
+
+  defs.sort((a, b) => numberOf(a.id) - numberOf(b.id))
+  const open = new state.Token('footnotes_open', 'section', 1)
+  const close = new state.Token('footnotes_close', 'section', -1)
+  state.tokens = [...body, open, ...defs.flatMap(d => d.tokens), close]
 }
 
 function alertPlugin(md: MarkdownIt): void {
@@ -230,6 +311,9 @@ export function createExportRenderer(): MarkdownIt {
   md.inline.ruler.after('sup', 'sub', subRule)
   md.inline.ruler.after('sub', 'emoji', emojiRule)
   md.inline.ruler.after('emoji', 'footnote_ref', footnoteRefRule)
+  // Before `reference`, or markdown-it swallows `[^a]: text` as a link reference definition.
+  md.block.ruler.before('reference', 'footnote_def', footnoteDefRule, { alt: ['paragraph', 'reference'] })
+  md.core.ruler.push('footnote_tail', footnoteTailRule)
   const mathInline: RenderRule = (tokens, idx) =>
     katex.renderToString(tokens[idx].content, { throwOnError: false, output: 'mathml' })
   const mathBlock: RenderRule = (tokens, idx) =>
@@ -261,16 +345,29 @@ export function createExportRenderer(): MarkdownIt {
   md.renderer.rules.sub_open = () => '<sub>'
   md.renderer.rules.sub_close = () => '</sub>'
   md.renderer.rules.footnote_ref = (tokens, idx) => {
-    const id = tokens[idx].meta.id as string
-    return `<sup id="fnref:${id}"><a href="#fn:${id}">${id}</a></sup>`
+    const meta = tokens[idx].meta as { id: string; num?: number; first?: boolean }
+    const id = md.utils.escapeHtml(meta.id)
+    // Only the first reference to an id carries the anchor the back-link targets.
+    const anchor = meta.first === false ? '' : ` id="fnref:${id}"`
+    return `<sup class="footnote-ref"${anchor}><a href="#fn:${id}">${meta.num ?? id}</a></sup>`
+  }
+  md.renderer.rules.footnotes_open = () => '<section class="footnotes">\n<ol>\n'
+  md.renderer.rules.footnotes_close = () => '</ol>\n</section>\n'
+  md.renderer.rules.footnote_def_open = (tokens, idx) => {
+    const id = md.utils.escapeHtml((tokens[idx].meta as { id: string }).id)
+    return `<li id="fn:${id}">`
+  }
+  md.renderer.rules.footnote_def_close = (tokens, idx) => {
+    const id = md.utils.escapeHtml((tokens[idx].meta as { id: string }).id)
+    return ` <a class="footnote-back" href="#fnref:${id}">\u21a9</a></li>\n`
   }
   return md
 }
 
 const renderer = createExportRenderer()
 
-export function renderBodyHtml(markdown: string): string {
-  return renderer.render(stripFrontmatter(markdown))
+export function renderBodyHtml(markdown: string, options?: Partial<SyntaxOptions>): string {
+  return renderer.render(stripFrontmatter(markdown), { syntax: { ...DEFAULT_SYNTAX_OPTIONS, ...options } })
 }
 
 let exportMermaidReady = false
@@ -313,6 +410,11 @@ const EXPORT_CSS = `
   h2 { font-size: 1.6em; }
   h3 { font-size: 1.3em; }
   a { color: #4a89dc; }
+  .footnote-ref { font-size: 0.75em; font-weight: 600; }
+  .footnotes { border-top: 1px solid #e5e5e5; margin-top: 2.5em; padding-top: 0.5em; font-size: 0.9em; }
+  .footnotes ol { padding-left: 1.5em; }
+  .footnotes li { margin: 0.3em 0; }
+  .footnote-back { text-decoration: none; }
   blockquote { border-left: 4px solid #e5e5e5; margin-left: 0; padding-left: 1em; color: #777; }
   .markdown-alert {
     padding: 0.5rem 1rem; margin: 1rem 0; color: inherit;
@@ -352,8 +454,10 @@ const EXPORT_CSS = `
   }
 `
 
-export async function renderExportHtml(markdown: string, title: string, customCss = ''): Promise<string> {
-  const body = await renderMermaidBlocks(renderBodyHtml(markdown))
+export async function renderExportHtml(
+  markdown: string, title: string, customCss = '', syntaxOpts?: Partial<SyntaxOptions>,
+): Promise<string> {
+  const body = await renderMermaidBlocks(renderBodyHtml(markdown, syntaxOpts))
   const content = customCss ? `<div id="write">\n${body}\n</div>` : body
   const customStyle = customCss ? `<style>${customCss}</style>\n` : ''
   return `<!doctype html>

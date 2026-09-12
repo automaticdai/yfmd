@@ -3,6 +3,7 @@ import { StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
 import { selectionTouches } from './live-preview/cursor-context'
 import { getExtensions } from './live-preview/analysis'
+import { syntaxOptions } from './live-preview/facets'
 import { EMOJI, type ExtMatch } from './live-preview/extensions'
 
 export { EMOJI, findExtensions, type ExtKind, type ExtMatch } from './live-preview/extensions'
@@ -27,11 +28,22 @@ interface ExtensionStructure {
   revealable: Revealable[]
 }
 
+/** Extension kinds the user has switched off render as plain source. */
+function enabledKinds(state: EditorState): (kind: ExtMatch['kind']) => boolean {
+  const opts = state.facet(syntaxOptions)
+  return kind =>
+    kind === 'mark' ? opts.highlight :
+    kind === 'sup' || kind === 'sub' ? opts.scripts :
+    true
+}
+
 function buildExtensionStructure(matches: ExtMatch[], state: EditorState): ExtensionStructure {
   const staticDeco: Range<Decoration>[] = []
   const revealable: Revealable[] = []
   const hide = Decoration.replace({})
+  const enabled = enabledKinds(state)
   for (const m of matches) {
+    if (!enabled(m.kind)) continue
     if (m.kind === 'emoji') {
       const char = EMOJI[state.sliceDoc(m.innerFrom, m.innerTo)]
       if (char) {
@@ -67,7 +79,8 @@ export const markdownExtensionsField = StateField.define<FieldValue>({
     return { structure, decorations: applyExtensionSelection(structure, state) }
   },
   update(value, tr) {
-    if (tr.docChanged) {
+    // A Syntax support toggle changes which kinds decorate, without touching the doc.
+    if (tr.docChanged || tr.startState.facet(syntaxOptions) !== tr.state.facet(syntaxOptions)) {
       const structure = buildExtensionStructure(getExtensions(tr.state), tr.state)
       return { structure, decorations: applyExtensionSelection(structure, tr.state) }
     }

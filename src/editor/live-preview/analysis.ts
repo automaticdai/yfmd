@@ -1,7 +1,7 @@
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Transaction } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
-import { findExcludedRanges, findExtensions, scanExtensionsIn, type ExtMatch } from './extensions'
+import { findExtensions, findScanExclusions, scanExtensionsIn, type ExtMatch } from './extensions'
 import { findMathRanges, type MathRange } from './math'
 
 /**
@@ -100,7 +100,7 @@ export function updateExtensions(prev: ExtMatch[], tr: Transaction, mathRanges: 
 
   if (newTo > newFrom) {
     const sub = newDoc.sliceString(newFrom, newTo)
-    const excluded = findExcludedRanges(tr.state, mathRanges)
+    const excluded = findScanExclusions(tr.state, mathRanges)
     out.push(...scanExtensionsIn(sub, newFrom, excluded))
   }
 

@@ -132,6 +132,16 @@
 .cm-sup { vertical-align: super; font-size: 0.8em; }
 .cm-sub { vertical-align: sub; font-size: 0.8em; }
 .cm-emoji { font-size: 1.1em; }
+/* footnote references */
+.cm-footnote-ref {
+  vertical-align: super; font-size: 0.75em; font-weight: 600;
+  color: var(--accent); padding: 0 1px; cursor: default;
+}
+.cm-footnote-def { color: var(--fg-muted); font-size: 0.92em; }
+.cm-footnote-def-num {
+  vertical-align: super; font-size: 0.75em; font-weight: 600;
+  color: var(--accent); margin-right: 0.4em;
+}
 /* table widget */
 .cm-table-container { padding: 0.5em 0; margin: 0; }
 .cm-table-widget { border-collapse: collapse; margin: 0; cursor: pointer; }

@@ -1,11 +1,16 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
-import { EditorSelection, EditorState } from '@codemirror/state'
+import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import type { DecorationSet } from '@codemirror/view'
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_SYNTAX_OPTIONS, syntaxOptions, type SyntaxOptions } from './live-preview/facets'
 import { findExtensions, markdownExtensionsField } from './markdown-extensions'
 
 function state(doc: string): EditorState {
   return EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage })] })
+}
+
+function inner(doc: string): string[] {
+  return findExtensions(state(doc)).map(m => doc.slice(m.innerFrom, m.innerTo))
 }
 
 function kinds(doc: string): string[] {
@@ -29,6 +34,13 @@ describe('findExtensions', () => {
   })
   it('detects emoji shortcodes', () => {
     expect(kinds('nice :fire:')).toEqual(['emoji'])
+  })
+  it('does not read the caret in a footnote marker as a superscript', () => {
+    const doc = 'claim[^a] with x^2^'
+    expect(inner(doc)).toEqual(['2'])
+  })
+  it('does not read the caret in a footnote definition as a superscript', () => {
+    expect(inner('[^a]: note with x^2^')).toEqual(['2'])
   })
   it('ignores extensions inside code blocks', () => {
     expect(kinds('```\n==x==\n```\n\n==y==')).toEqual(['mark'])
@@ -93,5 +105,73 @@ describe('markdownExtensionsField selection reveal', () => {
 
     const inside = ranges(mk('nice :fire:', 8).field(markdownExtensionsField).decorations)
     expect(inside.some(([f, t]) => f === 5 && t === 11)).toBe(false)
+  })
+})
+
+describe('markdownExtensionsField syntax toggles', () => {
+  function decorated(doc: string, opts: Partial<SyntaxOptions>): [number, number][] {
+    const s = EditorState.create({
+      doc,
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        syntaxOptions.of({ ...DEFAULT_SYNTAX_OPTIONS, ...opts }),
+        markdownExtensionsField,
+      ],
+    })
+    const out: [number, number][] = []
+    const it = s.field(markdownExtensionsField).decorations.iter()
+    while (it.value) { out.push([it.from, it.to]); it.next() }
+    return out
+  }
+
+  it('decorates highlight, superscript and subscript when every toggle is on', () => {
+    expect(decorated('==hi== x^2^ H~2~O', {}).length).toBeGreaterThan(0)
+    expect(decorated('==hi==', {})).not.toEqual([])
+    expect(decorated('x^2^', {})).not.toEqual([])
+    expect(decorated('H~2~O', {})).not.toEqual([])
+  })
+
+  it('leaves ==highlight== undecorated when the highlight toggle is off', () => {
+    expect(decorated('a ==hi== b', { highlight: false })).toEqual([])
+  })
+
+  it('still decorates superscript when only the highlight toggle is off', () => {
+    expect(decorated('x^2^', { highlight: false })).not.toEqual([])
+  })
+
+  it('leaves ^sup^ and ~sub~ undecorated when the scripts toggle is off', () => {
+    expect(decorated('x^2^ H~2~O', { scripts: false })).toEqual([])
+  })
+
+  it('still decorates highlight and emoji when only the scripts toggle is off', () => {
+    expect(decorated('==hi==', { scripts: false })).not.toEqual([])
+    expect(decorated('a :fire:', { scripts: false })).not.toEqual([])
+  })
+})
+
+describe('markdownExtensionsField reconfiguration', () => {
+  function count(s: EditorState): number {
+    let n = 0
+    const it = s.field(markdownExtensionsField).decorations.iter()
+    while (it.value) { n++; it.next() }
+    return n
+  }
+
+  it('drops highlight decorations when the facet is reconfigured, with no document edit', () => {
+    const compartment = new Compartment()
+    const state = EditorState.create({
+      doc: 'a ==hi== b',
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        compartment.of(syntaxOptions.of(DEFAULT_SYNTAX_OPTIONS)),
+        markdownExtensionsField,
+      ],
+    })
+    expect(count(state)).toBeGreaterThan(0)
+
+    const next = state.update({
+      effects: compartment.reconfigure(syntaxOptions.of({ ...DEFAULT_SYNTAX_OPTIONS, highlight: false })),
+    }).state
+    expect(count(next)).toBe(0)
   })
 })

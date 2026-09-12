@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { clampPanelWidth, DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_LIMITS, THEMES } from './settings'
+import { clampPanelWidth, DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_LIMITS, syntaxOptionsFrom, THEMES } from './settings'
 
 // node environment: emulate localStorage
 class MemStorage {
@@ -82,6 +82,38 @@ describe('loadSettings', () => {
     storage.setItem('yfmd-theme', 'dark')
     saveSettings({ ...DEFAULT_SETTINGS, theme: 'newsprint' })
     expect(loadSettings().theme).toBe('newsprint')
+  })
+})
+
+describe('syntax support settings', () => {
+  it('defaults every syntax toggle to on', () => {
+    const s = loadSettings()
+    expect([s.syntaxReferences, s.syntaxHighlight, s.syntaxScripts]).toEqual([true, true, true])
+  })
+  it('round-trips a disabled toggle', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, syntaxHighlight: false })
+    expect(loadSettings().syntaxHighlight).toBe(false)
+  })
+  it('falls back to on when a stored toggle is not a boolean', () => {
+    storage.setItem('yfmd-settings', JSON.stringify({ syntaxReferences: 'nope', syntaxScripts: 0 }))
+    const s = loadSettings()
+    expect([s.syntaxReferences, s.syntaxScripts]).toEqual([true, true])
+  })
+  it('leaves the other toggles on when one is disabled', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, syntaxScripts: false })
+    const s = loadSettings()
+    expect([s.syntaxReferences, s.syntaxHighlight, s.syntaxScripts]).toEqual([true, true, false])
+  })
+})
+
+describe('syntaxOptionsFrom', () => {
+  it('maps the three settings onto the live-preview option names', () => {
+    expect(syntaxOptionsFrom({ ...DEFAULT_SETTINGS, syntaxHighlight: false }))
+      .toEqual({ references: true, highlight: false, scripts: true })
+  })
+  it('carries every toggle through when all are off', () => {
+    const s = { ...DEFAULT_SETTINGS, syntaxReferences: false, syntaxHighlight: false, syntaxScripts: false }
+    expect(syntaxOptionsFrom(s)).toEqual({ references: false, highlight: false, scripts: false })
   })
 })
 
