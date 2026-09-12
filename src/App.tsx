@@ -29,13 +29,13 @@ import {
   copySelection, insertLink, pasteRichText, pasteText, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
-import { imageResolver, imageSaver, rebuildWidgets, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, codeLineNumbersCompartment, imageSaverCompartment, readOnlyCompartment, readOnlyExtensions, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
+import { imageResolver, imageSaver, rebuildWidgets, syntaxOptions, uiTheme } from './editor/live-preview/facets'
+import { createExtensions, codeLineNumbersCompartment, syntaxCompartment, imageSaverCompartment, readOnlyCompartment, readOnlyExtensions, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
 import { codeLineNumbersField } from './editor/code-line-numbers'
 import { writingModeExtensions } from './editor/writing-mode'
 import { extractOutline, type OutlineItem } from './outline/outline'
 import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
-import { loadSettings, saveSettings, type Settings, type ThemeName, THEMES } from './app/settings'
+import { loadSettings, saveSettings, type Settings, syntaxOptionsFrom, type ThemeName, THEMES } from './app/settings'
 import { SettingsDialog } from './app/SettingsDialog'
 import { createFileService, type FileService } from './services/file-service'
 import { Sidebar } from './sidebar/Sidebar'
@@ -289,6 +289,15 @@ export default function App() {
     })
   }, [settings.codeLineNumbers])
 
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: [
+        syntaxCompartment.reconfigure(syntaxOptions.of(syntaxOptionsFrom(settings))),
+        rebuildWidgets.of(null),
+      ],
+    })
+  }, [settings.syntaxReferences, settings.syntaxHighlight, settings.syntaxScripts])
+
   // read-only mode is an editor-only toggle, not a persisted setting
   useEffect(() => {
     viewRef.current?.dispatch({
@@ -456,21 +465,23 @@ export default function App() {
       case 'save': void c?.save(); break
       case 'save-as': void c?.saveAs(); break
       case 'export-html': {
+        const syntax = syntaxOptionsFrom(settingsRef.current)
         const fs = fsRef.current
         if (view && fs) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportHtml(fs, view.state.doc.toString(), title, customThemeCss)
+          void exportHtml(fs, view.state.doc.toString(), title, customThemeCss, syntax)
             .then(saved => { if (saved) notify(t('toast.exported', { path: saved })) })
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break
       }
       case 'export-pdf': {
+        const syntax = syntaxOptionsFrom(settingsRef.current)
         if (view) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportPdf(view.state.doc.toString(), title, customThemeCss)
+          void exportPdf(view.state.doc.toString(), title, customThemeCss, syntax)
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break

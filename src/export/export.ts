@@ -1,16 +1,21 @@
+import type { SyntaxOptions } from '../editor/live-preview/facets'
 import type { FileService } from '../services/file-service'
 import { renderExportHtml } from './render-html'
 
-export async function exportHtml(fs: FileService, markdown: string, title: string, customCss = ''): Promise<string | null> {
+export async function exportHtml(
+  fs: FileService, markdown: string, title: string, customCss = '', syntax?: Partial<SyntaxOptions>,
+): Promise<string | null> {
   const path = await fs.saveFileDialog(`${title}.html`)
   if (path === null) return null
-  await fs.writeFile(path, await renderExportHtml(markdown, title, customCss))
+  await fs.writeFile(path, await renderExportHtml(markdown, title, customCss, syntax))
   return path
 }
 
 /** Renders to a hidden iframe and opens the system print dialog (print-to-PDF). */
-export async function exportPdf(markdown: string, title: string, customCss = ''): Promise<void> {
-  const html = await renderExportHtml(markdown, title, customCss)
+export async function exportPdf(
+  markdown: string, title: string, customCss = '', syntax?: Partial<SyntaxOptions>,
+): Promise<void> {
+  const html = await renderExportHtml(markdown, title, customCss, syntax)
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
   iframe.style.right = '100vw'

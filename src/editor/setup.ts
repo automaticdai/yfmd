@@ -28,6 +28,7 @@ export const themeCompartment = new Compartment()
 export const writingModeCompartment = new Compartment()
 export const codeLineNumbersCompartment = new Compartment()
 export const readOnlyCompartment = new Compartment()
+export const syntaxCompartment = new Compartment()
 
 /** Lock the document: no typing (non-editable), and every document change is
  *  filtered out so menu commands can't mutate it either. Selection, copy,
@@ -74,6 +75,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     writingModeCompartment.of([]),
     codeLineNumbersCompartment.of([]),
     readOnlyCompartment.of([]),
+    syntaxCompartment.of([]),
     EditorView.updateListener.of(u => {
       if (u.docChanged) opts.onDocChanged()
     }),

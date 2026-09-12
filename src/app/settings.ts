@@ -1,3 +1,4 @@
+import type { SyntaxOptions } from '../editor/live-preview/facets'
 import { BODY_FONTS, CODE_FONTS, findFont, type FontOption } from './fonts'
 import type { Locale } from './i18n'
 
@@ -25,6 +26,9 @@ export interface Settings {
   lineHeight: number
   autosave: boolean
   codeLineNumbers: boolean
+  syntaxReferences: boolean  // [^1] footnotes
+  syntaxHighlight: boolean   // ==highlight==
+  syntaxScripts: boolean     // ^sup^ and ~sub~
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -40,6 +44,9 @@ export const DEFAULT_SETTINGS: Settings = {
   lineHeight: 1.7,
   autosave: false,
   codeLineNumbers: false,
+  syntaxReferences: true,
+  syntaxHighlight: true,
+  syntaxScripts: true,
 }
 
 export const SETTINGS_LIMITS = {
@@ -56,6 +63,10 @@ const LEGACY_THEME_KEY = 'yfmd-theme'
 function num(value: unknown, fallback: number, min: number, max: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback
   return Math.min(max, Math.max(min, n))
+}
+
+function bool(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
 }
 
 function fontId(value: unknown, list: FontOption[], fallback: string): string {
@@ -102,7 +113,15 @@ export function loadSettings(): Settings {
     lineHeight: num(raw.lineHeight, D.lineHeight, L.lineHeight.min, L.lineHeight.max),
     autosave: typeof raw.autosave === 'boolean' ? raw.autosave : D.autosave,
     codeLineNumbers: typeof raw.codeLineNumbers === 'boolean' ? raw.codeLineNumbers : D.codeLineNumbers,
+    syntaxReferences: bool(raw.syntaxReferences, D.syntaxReferences),
+    syntaxHighlight: bool(raw.syntaxHighlight, D.syntaxHighlight),
+    syntaxScripts: bool(raw.syntaxScripts, D.syntaxScripts),
   }
+}
+
+/** The live-preview / export view of the three Syntax support toggles. */
+export function syntaxOptionsFrom(s: Settings): SyntaxOptions {
+  return { references: s.syntaxReferences, highlight: s.syntaxHighlight, scripts: s.syntaxScripts }
 }
 
 export function saveSettings(s: Settings): void {

@@ -13,6 +13,19 @@ export const imageSaver = Facet.define<ImageSaver, ImageSaver>({
   combine: values => values[0] ?? (async () => null),
 })
 
+/** Which optional markdown syntaxes the live preview renders. */
+export interface SyntaxOptions {
+  references: boolean  // [^1] footnotes
+  highlight: boolean   // ==highlight==
+  scripts: boolean     // ^sup^ and ~sub~
+}
+
+export const DEFAULT_SYNTAX_OPTIONS: SyntaxOptions = { references: true, highlight: true, scripts: true }
+
+export const syntaxOptions = Facet.define<SyntaxOptions, SyntaxOptions>({
+  combine: values => values[0] ?? DEFAULT_SYNTAX_OPTIONS,
+})
+
 export const uiTheme = Facet.define<'light' | 'dark', 'light' | 'dark'>({
   combine: values => values[0] ?? 'light',
 })

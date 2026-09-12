@@ -9,7 +9,7 @@ interface Props {
   onClose(): void
 }
 
-type Tab = 'general' | 'layout' | 'appearance'
+type Tab = 'general' | 'layout' | 'appearance' | 'syntax'
 
 function SliderRow({ label, setting, value, unit, min, max, step, onInput }: {
   label: string
@@ -62,6 +62,29 @@ function FontRow({ label, setting, fonts, value, onPick }: {
   )
 }
 
+function SyntaxRow({ label, hint, setting, checked, onChange }: {
+  label: string
+  hint: string
+  setting: string
+  checked: boolean
+  onChange(value: boolean): void
+}) {
+  return (
+    <label className="settings-row">
+      <span>
+        {label}
+        <span className="settings-hint">{hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        data-setting={setting}
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+      />
+    </label>
+  )
+}
+
 export function SettingsDialog({ settings, onChange, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('general')
 
@@ -81,6 +104,7 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
     { id: 'general', label: t('settings.general') },
     { id: 'layout', label: t('settings.layout') },
     { id: 'appearance', label: t('settings.appearance') },
+    { id: 'syntax', label: t('settings.syntax') },
   ]
 
   return (
@@ -177,6 +201,20 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
             <SliderRow label={t('settings.lineHeight')} setting="lineHeight" value={settings.lineHeight} unit=""
               min={L.lineHeight.min} max={L.lineHeight.max} step={L.lineHeight.step}
               onInput={v => set('lineHeight', v)} />
+          </div>
+        )}
+
+        {tab === 'syntax' && (
+          <div className="settings-panel" role="tabpanel">
+            <SyntaxRow label={t('settings.syntaxReferences')} hint={t('settings.syntaxReferencesHint')}
+              setting="syntaxReferences" checked={settings.syntaxReferences}
+              onChange={v => set('syntaxReferences', v)} />
+            <SyntaxRow label={t('settings.syntaxHighlight')} hint={t('settings.syntaxHighlightHint')}
+              setting="syntaxHighlight" checked={settings.syntaxHighlight}
+              onChange={v => set('syntaxHighlight', v)} />
+            <SyntaxRow label={t('settings.syntaxScripts')} hint={t('settings.syntaxScriptsHint')}
+              setting="syntaxScripts" checked={settings.syntaxScripts}
+              onChange={v => set('syntaxScripts', v)} />
           </div>
         )}
 

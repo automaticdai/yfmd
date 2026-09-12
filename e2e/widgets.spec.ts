@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { docText, openApp, setCursor, setDoc } from './helpers'
+import { docText, menuAction, openApp, setCursor, setDoc } from './helpers'
 
 test('inline math renders and reveals on click', async ({ page }) => {
   await openApp(page)
@@ -119,4 +119,48 @@ test('an unterminated block stays ordinary markdown', async ({ page }) => {
   await setCursor(page, 20)
   await expect(page.locator('.cm-frontmatter-line')).toHaveCount(0)
   await expect(page.locator('.cm-hr-widget')).toBeVisible()
+})
+
+test('footnote references render as numbers and reveal their source on the cursor', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'A claim[^a] and another[^b].\n\n[^a]: First source.\n[^b]: Second source.\n')
+  await setCursor(page, 0)
+
+  // markers replaced by their numbers, definitions by a leading number
+  await expect(page.locator('.cm-footnote-ref')).toHaveText(['1', '2'])
+  await expect(page.locator('.cm-footnote-def-num')).toHaveText(['1', '2'])
+  await expect(page.locator('.cm-content')).not.toContainText('[^a]')
+
+  // cursor inside the first marker shows its raw source again
+  await setCursor(page, 9)
+  await expect(page.locator('.cm-content')).toContainText('[^a]')
+  await expect(page.locator('.cm-footnote-ref')).toHaveText(['2'])
+})
+
+test('the Syntax support settings turn references and highlight off and on', async ({ page }) => {
+  await openApp(page)
+  await setDoc(page, 'A ==bright== claim[^a] with x^2^.\n\n[^a]: Source.\n')
+  await setCursor(page, 0)
+  await expect(page.locator('.cm-footnote-ref')).toHaveCount(1)
+  await expect(page.locator('.cm-mark')).toHaveCount(1)
+
+  await menuAction(page, 'File', 'settings')
+  await page.locator('.settings-tab[data-tab="syntax"]').click()
+  await page.locator('[data-setting="syntaxReferences"]').uncheck()
+  await page.locator('[data-setting="syntaxHighlight"]').uncheck()
+  await page.locator('[data-apply="true"]').click()
+
+  await expect(page.locator('.cm-footnote-ref')).toHaveCount(0)
+  await expect(page.locator('.cm-mark')).toHaveCount(0)
+  await expect(page.locator('.cm-content')).toContainText('[^a]')
+  await expect(page.locator('.cm-content')).toContainText('==bright==')
+  // superscript has its own toggle and stays on
+  await expect(page.locator('.cm-sup')).toHaveCount(1)
+
+  // turning references back on restores the rendering
+  await menuAction(page, 'File', 'settings')
+  await page.locator('.settings-tab[data-tab="syntax"]').click()
+  await page.locator('[data-setting="syntaxReferences"]').check()
+  await page.locator('[data-apply="true"]').click()
+  await expect(page.locator('.cm-footnote-ref')).toHaveCount(1)
 })

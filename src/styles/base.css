@@ -284,6 +284,10 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   gap: 1.5em; padding: 0.45em 0;
 }
 .settings-row > span:first-child { color: var(--fg); }
+.settings-hint {
+  display: block; color: var(--fg-muted); font-size: 0.85em;
+  font-family: var(--code-font, monospace); margin-top: 0.15em;
+}
 .settings-control { display: flex; align-items: center; gap: 0.6em; }
 .settings-control input[type='range'] { width: 160px; accent-color: var(--accent); }
 .settings-value { color: var(--fg-muted); min-width: 4em; text-align: right; font-variant-numeric: tabular-nums; }
