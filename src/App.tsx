@@ -67,6 +67,8 @@ export default function App() {
   const [alwaysOnTop, setAlwaysOnTop] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
+  const modesRef = useRef({ readOnly, focusMode, typewriterMode })
+  modesRef.current = { readOnly, focusMode, typewriterMode }
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -186,6 +188,14 @@ export default function App() {
           sourceModeRef.current = false
           setSourceMode(false)
           applyEditorTheme()
+          const modes = modesRef.current
+          const currentSettings = settingsRef.current
+          view.dispatch({ effects: [
+            readOnlyCompartment.reconfigure(modes.readOnly ? readOnlyExtensions() : []),
+            writingModeCompartment.reconfigure(writingModeExtensions(modes.focusMode, modes.typewriterMode)),
+            codeLineNumbersCompartment.reconfigure(currentSettings.codeLineNumbers ? codeLineNumbersField : []),
+            syntaxCompartment.reconfigure(syntaxOptions.of(syntaxOptionsFrom(currentSettings))),
+          ] })
           const path = controllerRef.current?.meta.path ?? null
           view.dispatch({
             effects: [
@@ -470,7 +480,7 @@ export default function App() {
         if (view && fs) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportHtml(fs, view.state.doc.toString(), title, customThemeCss, syntax)
+          void exportHtml(fs, view.state.doc.toString(), title, customThemeCss, syntax, p ?? null)
             .then(saved => { if (saved) notify(t('toast.exported', { path: saved })) })
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
@@ -478,10 +488,11 @@ export default function App() {
       }
       case 'export-pdf': {
         const syntax = syntaxOptionsFrom(settingsRef.current)
-        if (view) {
+        const fs = fsRef.current
+        if (view && fs) {
           const p = controllerRef.current?.meta.path
           const title = p ? p.slice(p.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '') : 'untitled'
-          void exportPdf(view.state.doc.toString(), title, customThemeCss, syntax)
+          void exportPdf(fs, view.state.doc.toString(), title, customThemeCss, syntax, p ?? null)
             .catch(err => notify(t('toast.exportFailed', { error: err instanceof Error ? err.message : String(err) })))
         }
         break

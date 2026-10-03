@@ -136,3 +136,118 @@ describe('DocumentController', () => {
     expect(messages.some(m => /missing\.md/.test(m))).toBe(true)
   })
 })
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => { resolve = done })
+  return { promise, resolve }
+}
+
+it('keeps newer edits dirty when a save finishes', async () => {
+  const h = harness()
+  h.controller.meta.path = '/a.md'
+  h.type('snapshot')
+  const gate = deferred<void>()
+  h.fs.writeFile = async (path, content) => { await gate.promise; h.fs.files.set(path, content) }
+  const saving = h.controller.save()
+  h.type('newer text')
+  gate.resolve()
+  expect(await saving).toBe(false)
+  expect(h.fs.files.get('/a.md')).toBe('snapshot')
+  expect(h.controller.meta.dirty).toBe(true)
+})
+
+it('serializes overlapping saves so the newest snapshot stays on disk', async () => {
+  const h = harness()
+  h.controller.meta.path = '/a.md'
+  const first = deferred<void>()
+  let calls = 0
+  h.fs.writeFile = async (path, content) => {
+    if (++calls === 1) await first.promise
+    h.fs.files.set(path, content)
+  }
+  h.type('first')
+  const a = h.controller.save()
+  h.type('second')
+  const b = h.controller.save()
+  first.resolve()
+  await Promise.all([a, b])
+  expect(h.fs.files.get('/a.md')).toBe('second')
+  expect(h.controller.meta.dirty).toBe(false)
+})
+
+it('does not clear a different document when an old save finishes', async () => {
+  const h = harness()
+  h.controller.meta.path = '/a.md'
+  h.type('A')
+  const gate = deferred<void>()
+  h.fs.writeFile = () => gate.promise
+  const saving = h.controller.save()
+  await h.controller.newFile()
+  h.type('B')
+  gate.resolve()
+  expect(await saving).toBe(false)
+  expect(h.controller.meta).toMatchObject({ path: null, dirty: true })
+})
+
+it('asks again about edits made while opening a file', async () => {
+  const h = harness(['cancel'])
+  const read = deferred<string>()
+  h.fs.readFile = () => read.promise
+  const opening = h.controller.openPath('/b.md')
+  await Promise.resolve()
+  h.type('keep this edit')
+  read.resolve('B')
+  await opening
+  expect(h.text()).toBe('keep this edit')
+  expect(h.controller.meta.dirty).toBe(true)
+})
+
+it('ignores an older open completing after a newer one', async () => {
+  const h = harness()
+  const a = deferred<string>()
+  h.fs.readFile = path => path === '/a.md' ? a.promise : Promise.resolve('B')
+  const opening = h.controller.openPath('/a.md')
+  await Promise.resolve()
+  await h.controller.openPath('/b.md')
+  a.resolve('A')
+  await opening
+  expect(h.text()).toBe('B')
+  expect(h.controller.meta.path).toBe('/b.md')
+})
+
+it('does not close through a save guard when edits arrive during the write', async () => {
+  const h = harness(['save'])
+  h.controller.meta.path = '/a.md'
+  h.type('A')
+  const started = deferred<void>()
+  const gate = deferred<void>()
+  h.fs.writeFile = () => { started.resolve(); return gate.promise }
+  const guarded = h.controller.guardDirty()
+  await started.promise
+  h.type('newer')
+  gate.resolve()
+  expect(await guarded).toBe(false)
+})
+
+it('abandons save-as if the document changes while its dialog is open', async () => {
+  const h = harness()
+  const dialog = deferred<string | null>()
+  h.fs.saveFileDialog = () => dialog.promise
+  const saving = h.controller.saveAs()
+  await h.controller.newFile('new document')
+  dialog.resolve('/old.md')
+  expect(await saving).toBe(false)
+  expect(h.fs.files.has('/old.md')).toBe(false)
+  expect(h.controller.meta.path).toBeNull()
+})
+
+it('normalizes Windows input and tracks documents inside renamed directories', async () => {
+  const h = harness()
+  h.fs.files.set('C:/notes/sub/a.md', 'A')
+  await h.controller.openPath('C:\\notes\\sub\\a.md')
+  await h.controller.renamePath('C:\\notes', 'C:\\renamed')
+  expect(h.controller.meta.path).toBe('C:/renamed/sub/a.md')
+  await h.controller.deletePath('C:\\renamed')
+  expect(h.controller.meta.path).toBeNull()
+})

@@ -51,8 +51,8 @@ block your cursor touches reveals its raw markdown syntax for editing.
   word/character count with reading time in the status bar
 - **Custom themes** — import a Typora-style CSS theme (Theme menu), applied to
   both the editor and HTML export
-- **Export** — standalone offline HTML (MathML math, inline mermaid SVG, alerts,
-  inlined CSS/highlighting) and PDF via the system print dialog
+- **Export** — standalone HTML (MathML math, inline mermaid SVG, alerts,
+  inlined CSS/highlighting, embedded local images) and PDF via the system print dialog
 - **Read-Only Mode** — View menu; locks the document (no typing, menu edit
   commands are inert), shows a `READ-ONLY` badge in the status bar
 - **Help menu** — a Keyboard Shortcuts reference dialog, "Markdown Guide" (opens
@@ -96,7 +96,8 @@ sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev
   browser dev/tests, a native one (dialogs, fs, folder listing via a Rust command)
   inside Tauri.
 - **Export**: a separate markdown-it pipeline with KaTeX (`output: 'mathml'`) and
-  mermaid-to-SVG post-processing produces fully offline HTML.
+  mermaid-to-SVG post-processing produces standalone HTML with embedded local images.
+  Remote images retain their URLs and require a network connection.
 
 ## CI & releases
 

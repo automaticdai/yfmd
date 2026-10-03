@@ -56,6 +56,11 @@ export class BrowserFileService implements FileService {
     return content
   }
 
+  async readBinary(path: string): Promise<Uint8Array> {
+    const encoded = await this.readFile(path)
+    return Uint8Array.from(atob(encoded), char => char.charCodeAt(0))
+  }
+
   async writeFile(path: string, content: string): Promise<void> {
     this.files.set(path, content)
   }

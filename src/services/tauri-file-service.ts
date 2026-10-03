@@ -12,7 +12,7 @@ import {
 } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import {
-  dirname, type FileEntry, type FileService, normalizePath,
+  resolveLocalPath, type FileEntry, type FileService, normalizePath,
   type OpenedFile, type OpenedFolder, type OpenedImage,
 } from './file-service'
 
@@ -24,17 +24,21 @@ export class TauriFileService implements FileService {
   async openFileDialog(): Promise<OpenedFile | null> {
     const path = await open({ multiple: false, directory: false, filters: MD_FILTERS })
     if (typeof path !== 'string') return null
-    return { path, content: await readTextFile(path) }
+    return { path: normalizePath(path), content: await readTextFile(path) }
   }
 
   async openFolderDialog(): Promise<OpenedFolder | null> {
     const path = await open({ directory: true, multiple: false })
     if (typeof path !== 'string') return null
-    return { path, tree: await invoke<FileEntry[]>('list_dir', { path }) }
+    return { path: normalizePath(path), tree: await this.listFolder(path) }
   }
 
   readFile(path: string): Promise<string> {
     return readTextFile(path)
+  }
+
+  readBinary(path: string): Promise<Uint8Array> {
+    return fsReadFile(path)
   }
 
   async writeFile(path: string, content: string): Promise<void> {
@@ -58,17 +62,21 @@ export class TauriFileService implements FileService {
   }
 
   async listFolder(path: string): Promise<FileEntry[]> {
-    return invoke<FileEntry[]>('list_dir', { path })
+    const normalizeEntries = (entries: FileEntry[]): FileEntry[] => entries.map(entry => ({
+      ...entry, path: normalizePath(entry.path),
+      ...(entry.children ? { children: normalizeEntries(entry.children) } : {}),
+    }))
+    return normalizeEntries(await invoke<FileEntry[]>('list_dir', { path }))
   }
 
   async defaultDir(): Promise<string> {
-    return documentDir()
+    return normalizePath(await documentDir())
   }
 
   async openImageDialog(): Promise<OpenedImage | null> {
     const path = await open({ multiple: false, directory: false, filters: IMAGE_FILTERS })
     if (typeof path !== 'string') return null
-    return { path, data: await fsReadFile(path) }
+    return { path: normalizePath(path), data: await this.readBinary(path) }
   }
 
   async openCssDialog(): Promise<string | null> {
@@ -87,14 +95,16 @@ export class TauriFileService implements FileService {
     } catch {
       // documents dir unavailable — fall back to the bare name
     }
-    return save({ defaultPath, filters: MD_FILTERS })
+    const filters = /\.html$/i.test(defaultName)
+      ? [{ name: 'HTML', extensions: ['html'] }] : MD_FILTERS
+    const path = await save({ defaultPath, filters })
+    return path === null ? null : normalizePath(path)
   }
 
   resolveResource(docPath: string | null, src: string): string {
     if (/^(https?:|data:|asset:|blob:)/i.test(src)) return src
-    if (src.startsWith('/')) return convertFileSrc(normalizePath(src))
-    if (!docPath) return src
-    return convertFileSrc(normalizePath(dirname(docPath) + '/' + src))
+    const path = resolveLocalPath(docPath, src)
+    return path === null ? src : convertFileSrc(path)
   }
 
   openExternal(url: string): Promise<void> {

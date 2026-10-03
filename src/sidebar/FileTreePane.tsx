@@ -133,7 +133,7 @@ export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenF
           onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={openNodeMenu} />
       ))}
       {menu && (
-        <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
+        <div className="context-menu" onMouseDown={e => e.stopPropagation()} style={{ left: menu.x, top: menu.y }}>
           {menuItems.map(item => (
             <button key={item.label} onClick={() => { item.run(); setMenu(null) }}>{item.label}</button>
           ))}

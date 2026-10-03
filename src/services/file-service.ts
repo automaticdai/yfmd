@@ -13,6 +13,7 @@ export interface FileService {
   openFileDialog(): Promise<OpenedFile | null>
   openFolderDialog(): Promise<OpenedFolder | null>
   readFile(path: string): Promise<string>
+  readBinary(path: string): Promise<Uint8Array>
   writeFile(path: string, content: string): Promise<void>
   writeBinary(path: string, data: Uint8Array): Promise<void>
   mkdir(path: string): Promise<void>
@@ -34,20 +35,33 @@ export function isMarkdownFile(name: string): boolean {
   return name.includes('.') && MD_EXTENSIONS.includes(ext)
 }
 
+/** Canonical separators, preserving drive and UNC roots. */
 export function normalizePath(p: string): string {
-  const abs = p.startsWith('/')
+  p = p.replace(/\\/g, '/')
+  const root = /^(?:[a-z]:\/|\/\/[^/]+\/[^/]+(?:\/|$)|\/)/i.exec(p)?.[0] ?? ''
   const out: string[] = []
-  for (const seg of p.split('/')) {
+  for (const seg of p.slice(root.length).split('/')) {
     if (seg === '' || seg === '.') continue
-    if (seg === '..') out.pop()
-    else out.push(seg)
+    if (seg === '..' && out.length && out[out.length - 1] !== '..') out.pop()
+    else if (seg !== '..' || !root) out.push(seg)
   }
-  return (abs ? '/' : '') + out.join('/')
+  return root + out.join('/')
+}
+
+export function isAbsolutePath(p: string): boolean {
+  return /^(?:[a-z]:[\\/]|[\\/])/i.test(p)
 }
 
 export function dirname(p: string): string {
+  p = normalizePath(p)
+  const root = /^(?:[a-z]:\/|\/\/[^/]+\/[^/]+(?:\/|$)|\/)/i.exec(p)?.[0] ?? ''
   const i = p.lastIndexOf('/')
-  return i <= 0 ? (i === 0 ? '/' : '') : p.slice(0, i)
+  return i < root.length ? root : p.slice(0, i)
+}
+
+export function resolveLocalPath(docPath: string | null, src: string): string | null {
+  if (isAbsolutePath(src)) return normalizePath(src)
+  return docPath ? normalizePath(dirname(docPath).replace(/\/$/, '') + '/' + src) : null
 }
 
 /** Build a nested FileEntry tree from absolute paths; dirs first, then alpha. */

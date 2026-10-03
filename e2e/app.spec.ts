@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { docText, menuAction, openApp, setDoc } from './helpers'
+import type { BrowserFileService } from '../src/services/browser-file-service'
+import { docText, menuAction, openApp, setCursor, setDoc } from './helpers'
 
 test('file panel is hidden by default and F9 toggles it', async ({ page }) => {
   await openApp(page)
@@ -238,4 +239,82 @@ test('export html writes a standalone document', async ({ page }) => {
   expect(html).toContain('<math')
   // offline check: xmlns attributes are namespace identifiers, not fetched resources
   expect(html!.replace(/xmlns="[^"]*"/g, '')).not.toContain('http://')
+})
+
+test('read-only and syntax settings survive new and opened documents', async ({ page }) => {
+  await openApp(page)
+  await menuAction(page, 'File', 'settings')
+  await page.locator('.settings-tab[data-tab="general"]').click()
+  await page.locator('[data-setting="codeLineNumbers"]').check()
+  await page.locator('.settings-tab[data-tab="syntax"]').click()
+  await page.locator('[data-setting="syntaxHighlight"]').uncheck()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('F8')
+  await menuAction(page, 'View', 'read-only')
+  await menuAction(page, 'File', 'new')
+  await expect(page.locator('.readonly-badge')).toBeVisible()
+  await setDoc(page, 'should not change')
+  expect(await docText(page)).toBe('')
+  await page.evaluate(() => {
+    const fs = (window as unknown as { __yfmdFs: BrowserFileService }).__yfmdFs
+    fs.files.set('/next.md', '==literal==\n\n```js\nlet x = 1\n```\n\nend')
+    fs.dialogQueue.push('/next.md')
+  })
+  await menuAction(page, 'File', 'open-file')
+  await expect(page.locator('.readonly-badge')).toBeVisible()
+  await setDoc(page, 'should not change')
+  expect(await docText(page)).toBe('==literal==\n\n```js\nlet x = 1\n```\n\nend')
+  await setCursor(page, (await docText(page)).length)
+  await expect(page.locator('.cm-mark')).toHaveCount(0)
+  await expect(page.locator('.cm-focus-mode')).toHaveCount(1)
+  await expect(page.locator('.cm-code-lineno')).toHaveCount(1)
+  await expect(page.locator('.cm-content')).toContainText('==literal==')
+  await menuAction(page, 'View', 'read-only')
+  await setDoc(page, 'editable')
+  expect(await docText(page)).toBe('editable')
+})
+
+test('file-tree context-menu mouse clicks rename, create, and delete files', async ({ page }) => {
+  await openApp(page)
+  await page.evaluate(() => {
+    const fs = (window as unknown as { __yfmdFs: BrowserFileService }).__yfmdFs
+    fs.files.set('/proj/notes.md', '# Notes')
+    fs.files.set('/proj/sub/a.md', 'A')
+    fs.dialogQueue.push('/proj')
+  })
+  await menuAction(page, 'File', 'open-folder')
+  await page.locator('.tree-file', { hasText: 'notes.md' }).click({ button: 'right' })
+  await page.locator('.context-menu button', { hasText: 'Rename' }).click()
+  await page.locator('.rename-input').fill('renamed.md')
+  await page.locator('[data-rename="confirm"]').click()
+  await expect(page.locator('.tree-file', { hasText: 'renamed.md' })).toBeVisible()
+  await page.locator('.tree-dir', { hasText: 'sub' }).click({ button: 'right' })
+  await page.locator('.context-menu button', { hasText: 'New File' }).click()
+  await expect(page.locator('.tree-file', { hasText: 'untitled.md' })).toBeVisible()
+  await page.locator('.tree-file', { hasText: 'renamed.md' }).click({ button: 'right' })
+  await page.locator('.context-menu button', { hasText: 'Delete' }).click()
+  await expect(page.locator('.tree-file', { hasText: 'renamed.md' })).toHaveCount(0)
+})
+
+test('HTML and PDF exports embed local images from the source document folder', async ({ page }) => {
+  await openApp(page)
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII='
+  await page.evaluate(data => {
+    const fs = (window as unknown as { __yfmdFs: BrowserFileService }).__yfmdFs
+    fs.files.set('/notes/doc.md', '# Image\n\n![pixel](assets/my%20image.png)')
+    fs.files.set('/notes/assets/my image.png', data)
+    fs.resolveResource = (_doc, src) => src === 'assets/my%20image.png' ? `data:image/png;base64,${data}` : src
+    fs.dialogQueue.push('/notes/doc.md', '/elsewhere/out.html')
+  }, png)
+  await menuAction(page, 'File', 'open-file')
+  await menuAction(page, 'File', 'export-html')
+  await expect(page.locator('.toast')).toContainText('/elsewhere/out.html')
+  const html = await page.evaluate(() => (window as unknown as { __yfmdFs: BrowserFileService }).__yfmdFs.files.get('/elsewhere/out.html'))
+  expect(html).toContain(`src="data:image/png;base64,${png}"`)
+  expect(html).not.toContain('assets/my%20image.png')
+  await menuAction(page, 'File', 'export-pdf')
+  await expect(page.locator('iframe')).toHaveAttribute('srcdoc', new RegExp('data:image/png;base64,'))
+  const image = page.frameLocator('iframe').locator('img')
+  await expect(image).toHaveJSProperty('complete', true)
+  await expect(image).toHaveJSProperty('naturalWidth', 1)
 })

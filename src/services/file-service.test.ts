@@ -55,3 +55,27 @@ describe('BrowserFileService', () => {
     expect(folder!.tree.map(e => e.name)).toEqual(['sub', 'a.md'])
   })
 })
+
+it('preserves Windows drive roots and resolves parent segments', () => {
+  expect(normalizePath('C:\\notes\\sub\\..\\a.md')).toBe('C:/notes/a.md')
+  expect(normalizePath('C:\\..\\a.md')).toBe('C:/a.md')
+  expect(dirname('C:\\notes\\a.md')).toBe('C:/notes')
+  expect(dirname('C:\\a.md')).toBe('C:/')
+})
+
+it('preserves UNC shares and prevents traversal above their root', () => {
+  expect(normalizePath('\\\\server\\share\\notes\\..\\a.md')).toBe('//server/share/a.md')
+  expect(normalizePath('\\\\server\\share\\..\\a.md')).toBe('//server/share/a.md')
+  expect(dirname('\\\\server\\share\\a.md')).toBe('//server/share/')
+})
+
+it('preserves unresolved relative parent segments', () => {
+  expect(normalizePath('../../assets/a.png')).toBe('../../assets/a.png')
+})
+
+it('resolves relative and absolute images across Windows roots', async () => {
+  const { resolveLocalPath } = await import('./file-service')
+  expect(resolveLocalPath('C:\\notes\\a.md', '../images/pic.png')).toBe('C:/images/pic.png')
+  expect(resolveLocalPath('C:\\notes\\a.md', 'D:\\images\\pic.png')).toBe('D:/images/pic.png')
+  expect(resolveLocalPath('\\\\server\\share\\a.md', 'assets/pic.png')).toBe('//server/share/assets/pic.png')
+})

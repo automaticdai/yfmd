@@ -7,6 +7,7 @@ function mockFs(overrides: Partial<FileService> = {}): FileService {
     openFileDialog: async () => null,
     openFolderDialog: async () => null,
     readFile: async () => '',
+    readBinary: async () => new Uint8Array(),
     writeFile: async () => {},
     writeBinary: async () => {},
     mkdir: async () => {},
@@ -49,4 +50,13 @@ describe('makeImageSaver', () => {
     const fs = mockFs({ writeBinary: async () => { throw new Error('nope') } })
     expect(await makeImageSaver(fs, '/a.md')(new Uint8Array([1]), 'png')).toBeNull()
   })
+})
+
+it('stores pasted images beside documents at Windows and UNC roots', async () => {
+  for (const [doc, expected] of [['C:\\doc.md', 'C:/assets'], ['\\\\server\\share\\doc.md', '//server/share/assets']]) {
+    const made: string[] = []
+    const fs = mockFs({ mkdir: async path => { made.push(path) } })
+    await makeImageSaver(fs, doc)(new Uint8Array([1]), 'png')
+    expect(made).toEqual([expected])
+  }
 })
