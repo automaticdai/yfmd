@@ -570,6 +570,7 @@ export default function App() {
   const checkedActions = new Set<string>([`theme:${settings.theme}`])
   if (sidebarVisible) checkedActions.add('toggle-sidebar')
   if (outlineVisible) checkedActions.add('toggle-outline')
+  if (sourceMode) checkedActions.add('source-mode')
   if (focusMode) checkedActions.add('focus-mode')
   if (typewriterMode) checkedActions.add('typewriter-mode')
   if (alwaysOnTop) checkedActions.add('always-on-top')
