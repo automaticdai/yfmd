@@ -28,6 +28,17 @@ export const ALERT_ICONS: Record<AlertKind, string> = {
 
 const ALERT_RE = /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s+|$)/i
 
+class BulletWidget extends WidgetType {
+  eq(other: WidgetType) { return other instanceof BulletWidget }
+  toDOM() {
+    const span = document.createElement('span')
+    span.className = 'cm-list-bullet'
+    span.textContent = '•'
+    return span
+  }
+  ignoreEvent() { return false }
+}
+
 class AlertTitleWidget extends WidgetType {
   constructor(readonly kind: AlertKind) { super() }
   eq(o: AlertTitleWidget) { return o.kind === this.kind }
@@ -114,6 +125,15 @@ export function buildInlineStructure(state: EditorState): InlineStructure {
         return
       }
       switch (name) {
+        case 'ListMark':
+          if (/^[-+*]$/.test(state.sliceDoc(node.from, node.to))) {
+            revealableHides.push({
+              deco: Decoration.replace({ widget: new BulletWidget() }).range(node.from, node.to),
+              guardFrom: node.from,
+              guardTo: node.to,
+            })
+          }
+          return
         case 'HeaderMark': {
           const parent = node.node.parent
           if (!parent) return

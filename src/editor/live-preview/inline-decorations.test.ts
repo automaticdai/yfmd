@@ -76,6 +76,25 @@ describe('selectionTouches', () => {
 })
 
 describe('inline mark hiding', () => {
+  it('renders all unordered markers, including nested lists, as bullet widgets', () => {
+    const doc = '- first\n  * nested\n    + deeper\n\nend'
+    const { hides } = buildInlineDecorations(mkState(doc, doc.length))
+    const markers: string[] = []
+    const it = hides.iter()
+    while (it.value) {
+      if (it.value.spec.widget) markers.push(doc.slice(it.from, it.to))
+      it.next()
+    }
+    expect(markers).toEqual(['-', '*', '+'])
+  })
+  it('reveals a bullet marker for editing but renders it while editing the text', () => {
+    expect(hiddenRanges(buildInlineDecorations(mkState('- item', 0)).hides)).toEqual([])
+    expect(hiddenRanges(buildInlineDecorations(mkState('- item', 4)).hides)).toEqual([[0, 1]])
+  })
+  it('keeps ordered markers and marker-like text unchanged', () => {
+    const doc = '1. ordered\n\nplain - text + text\n\n    - code\n\nend'
+    expect(hiddenRanges(buildInlineDecorations(mkState(doc, doc.length)).hides)).toEqual([])
+  })
   it('hides ** markers when cursor is outside', () => {
     // doc: "x **bold** y" — bold node spans 2..10, marks 2..4 and 8..10
     const { hides } = buildInlineDecorations(mkState('x **bold** y', 0))
@@ -139,4 +158,3 @@ describe('inline mark hiding', () => {
     expect(insideRanges.some(([f, t]) => doc.slice(f, t) === '[!NOTE]')).toBe(false)
   })
 })
-
