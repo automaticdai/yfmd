@@ -2,6 +2,21 @@ import { expect, test } from '@playwright/test'
 import type { BrowserFileService } from '../src/services/browser-file-service'
 import { docText, menuAction, openApp, setCursor, setDoc } from './helpers'
 
+test('first launch shows the guide, then later launches are blank', async ({ page }) => {
+  await openApp(page)
+  expect(await docText(page)).toContain('# Welcome to yfmd')
+  await expect(page.locator('.cm-content')).toHaveAttribute('spellcheck', 'true')
+  await page.reload()
+  await expect(page.locator('.cm-content')).toBeVisible()
+  expect(await docText(page)).toBe('')
+})
+
+test('a later launch stays blank when the guide has already been seen', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('yfmd-seen-guide', '1'))
+  await openApp(page)
+  expect(await docText(page)).toBe('')
+})
+
 test('file panel is hidden by default and F9 toggles it', async ({ page }) => {
   await openApp(page)
   await expect(page.locator('.sidebar')).toHaveCount(0)
@@ -32,7 +47,7 @@ test('the file panel can be resized by dragging its edge, and the width persists
 
   await page.reload()
   await expect(page.locator('.cm-content')).toBeVisible()
-  await page.keyboard.press('F9')
+  await expect(page.locator('.sidebar')).toBeVisible()
   expect(await width()).toBe(resized)
 })
 
@@ -104,9 +119,16 @@ test('Help menu: Keyboard Shortcuts dialog, Markdown Guide, and external links',
   await page.locator('[data-choice="discard"]').click()
   expect(await docText(page)).toContain('# Welcome to yfmd')
 
-  // external links go through window.open
+  // external links go through window.open; a newer release opens the releases page
+  await page.route('https://api.github.com/repos/automaticdai/yfmd/releases/latest', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ tag_name: 'v99.0.0' }),
+    }))
   await menuAction(page, 'Help', 'report-issue')
   await menuAction(page, 'Help', 'check-updates')
+  await expect(page.locator('.toast')).toContainText('99.0.0')
   const opened = await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened)
   expect(opened.some(u => u.endsWith('/issues'))).toBe(true)
   expect(opened.some(u => u.endsWith('/releases'))).toBe(true)

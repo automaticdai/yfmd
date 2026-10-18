@@ -157,4 +157,10 @@ describe('renderExportHtml syntax toggles', () => {
     expect(html).toContain('<mark>hi</mark>')
     expect(html).toContain('class="footnotes"')
   })
+
+  it('escapes a theme stylesheet that tries to close the style tag', async () => {
+    const html = await renderExportHtml('# T', 'T', 'x{}</style><script>alert(1)</script>')
+    expect(html).not.toContain('</style><script>')
+    expect(html).toContain('<\\/style>')
+  })
 })

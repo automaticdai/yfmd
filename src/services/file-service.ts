@@ -20,6 +20,10 @@ export interface FileService {
   rename(oldPath: string, newPath: string): Promise<void>
   remove(path: string): Promise<void>
   listFolder(path: string): Promise<FileEntry[]>
+  /** Modification time in ms, or null when the file is missing or has no mtime. */
+  fileMtime(path: string): Promise<number | null>
+  /** Allow the desktop shell to read this path and its parent directory. No-op in the browser. */
+  grantAccess(path: string): Promise<void>
   defaultDir(): Promise<string>
   openImageDialog(): Promise<OpenedImage | null>
   openCssDialog(): Promise<string | null>
@@ -62,6 +66,58 @@ export function dirname(p: string): string {
 export function resolveLocalPath(docPath: string | null, src: string): string | null {
   if (isAbsolutePath(src)) return normalizePath(src)
   return docPath ? normalizePath(dirname(docPath).replace(/\/$/, '') + '/' + src) : null
+}
+
+function sortEntries(entries: FileEntry[]): FileEntry[] {
+  return [...entries].sort((a, b) =>
+    a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : a.name.localeCompare(b.name))
+}
+
+/**
+ * Immediate children of `folder`. Directories omit `children` so the UI can
+ * load them on expand. `dirPaths` adds empty directories that contain no files.
+ */
+export function listOneLevel(folder: string, filePaths: string[], dirPaths: string[] = []): FileEntry[] {
+  const root = normalizePath(folder).replace(/\/$/, '') || '/'
+  const prefix = root === '/' ? '/' : root + '/'
+  const map = new Map<string, FileEntry>()
+  const consider = (full: string, asDir: boolean) => {
+    const path = normalizePath(full)
+    if (path === root || !path.startsWith(prefix)) return
+    const rest = path.slice(prefix.length)
+    const slash = rest.indexOf('/')
+    const name = slash === -1 ? rest : rest.slice(0, slash)
+    if (!name) return
+    const isDir = asDir || slash !== -1
+    const existing = map.get(name)
+    if (!existing) map.set(name, { name, path: prefix + name, isDir })
+    else if (isDir && !existing.isDir) map.set(name, { ...existing, isDir: true })
+  }
+  for (const file of filePaths) consider(file, false)
+  for (const dir of dirPaths) consider(dir, true)
+  return sortEntries([...map.values()])
+}
+
+/** Directories whose children have already been loaded. */
+export function loadedDirPaths(entries: FileEntry[]): string[] {
+  const out: string[] = []
+  for (const entry of entries) {
+    if (entry.isDir && entry.children) {
+      out.push(entry.path)
+      out.push(...loadedDirPaths(entry.children))
+    }
+  }
+  return out
+}
+
+/** Attach a freshly loaded child list to `dir`, leaving every other node as it is. */
+export function upsertChildren(entries: FileEntry[], dir: string, children: FileEntry[]): FileEntry[] {
+  const target = normalizePath(dir)
+  return entries.map(entry => {
+    if (normalizePath(entry.path) === target) return { ...entry, isDir: true, children }
+    if (entry.children) return { ...entry, children: upsertChildren(entry.children, dir, children) }
+    return entry
+  })
 }
 
 /** Build a nested FileEntry tree from absolute paths; dirs first, then alpha. */

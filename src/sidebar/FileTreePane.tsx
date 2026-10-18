@@ -8,6 +8,7 @@ interface Props {
   selectedPath: string | null
   onSelect(path: string): void
   onOpenFile(path: string): void
+  onLoadDir(path: string): void
   onNewFile(path: string): void
   onNewFolder(path: string): void
   onRenameRequest(path: string): void
@@ -28,18 +29,31 @@ function uniqueName(base: string, siblings: FileEntry[]): string {
   return `${stem}-${i}${ext}`
 }
 
-interface Menu { x: number; y: number; node: FileEntry | null }
+interface Menu { x: number; y: number; path: string | null }
+
+function findEntry(entries: FileEntry[], path: string): FileEntry | null {
+  for (const entry of entries) {
+    if (entry.path === path) return entry
+    if (entry.children) {
+      const found = findEntry(entry.children, path)
+      if (found) return found
+    }
+  }
+  return null
+}
 
 interface NodeProps {
   entry: FileEntry
+  isOpen(entry: FileEntry): boolean
   selectedPath: string | null
+  onToggle(path: string): void
   onSelect(path: string): void
   onOpenFile(path: string): void
   onContextMenu(e: MouseEvent, node: FileEntry): void
 }
 
-function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: NodeProps) {
-  const [collapsed, setCollapsed] = useState(false)
+function Node({ entry, isOpen, selectedPath, onToggle, onSelect, onOpenFile, onContextMenu }: NodeProps) {
+  const open = entry.isDir && isOpen(entry)
   const selected = entry.path === selectedPath
 
   if (entry.isDir) {
@@ -53,16 +67,16 @@ function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: Node
             e.dataTransfer.setData('application/x-yfmd-kind', 'dir')
             e.dataTransfer.effectAllowed = 'copy'
           }}
-          onClick={() => { onSelect(entry.path); setCollapsed(c => !c) }}
+          onClick={() => { onSelect(entry.path); onToggle(entry.path) }}
           onContextMenu={e => onContextMenu(e, entry)}
         >
-          <span className="tree-arrow">{collapsed ? '▸' : '▾'}</span> {entry.name}
+          <span className="tree-arrow">{open ? '▾' : '▸'}</span> {entry.name}
         </button>
-        {!collapsed && (
+        {open && (
           <div className="tree-children">
             {(entry.children ?? []).map(child => (
-              <Node key={child.path} entry={child} selectedPath={selectedPath}
-                onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={onContextMenu} />
+              <Node key={child.path} entry={child} isOpen={isOpen} selectedPath={selectedPath}
+                onToggle={onToggle} onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={onContextMenu} />
             ))}
           </div>
         )}
@@ -89,8 +103,9 @@ function Node({ entry, selectedPath, onSelect, onOpenFile, onContextMenu }: Node
   )
 }
 
-export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenFile, onNewFile, onNewFolder, onRenameRequest, onDelete }: Props) {
+export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenFile, onLoadDir, onNewFile, onNewFolder, onRenameRequest, onDelete }: Props) {
   const [menu, setMenu] = useState<Menu | null>(null)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const close = () => setMenu(null)
@@ -98,30 +113,54 @@ export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenF
     return () => window.removeEventListener('mousedown', close)
   }, [])
 
+  const isOpen = (entry: FileEntry) => entry.children !== undefined && !collapsed.has(entry.path)
+
+  const onToggle = (path: string) => {
+    const entry = findEntry(tree, path)
+    if (!entry) return
+    if (entry.children === undefined) {
+      void onLoadDir(path)
+      setCollapsed(prev => {
+        const next = new Set(prev)
+        next.delete(path)
+        return next
+      })
+      return
+    }
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
   const openNodeMenu = (e: MouseEvent, node: FileEntry) => {
     e.preventDefault()
     e.stopPropagation()
-    setMenu({ x: e.clientX, y: e.clientY, node })
+    if (node.isDir && node.children === undefined) void onLoadDir(node.path)
+    setMenu({ x: e.clientX, y: e.clientY, path: node.path })
   }
 
   const openRootMenu = (e: MouseEvent) => {
     if (!folderPath) return
     e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY, node: null })
+    setMenu({ x: e.clientX, y: e.clientY, path: null })
   }
 
+  const menuNode = menu?.path ? findEntry(tree, menu.path) : null
   const menuItems: { label: string; run: () => void }[] = []
   if (menu) {
-    const isDir = menu.node === null || menu.node.isDir
-    const targetDir = menu.node === null ? folderPath! : menu.node.isDir ? menu.node.path : dirname(menu.node.path)
-    const siblings = menu.node === null ? tree : menu.node.isDir ? (menu.node.children ?? []) : []
+    const isDir = menu.path === null || menuNode?.isDir === true
+    const targetDir = menu.path === null ? folderPath! : menuNode?.isDir ? menuNode.path : menuNode ? dirname(menuNode.path) : folderPath!
+    const siblings = menu.path === null ? tree : menuNode?.isDir ? (menuNode.children ?? []) : []
     if (isDir) {
       menuItems.push({ label: t('sidebar.newFile'), run: () => onNewFile(joinPath(targetDir, uniqueName('untitled.md', siblings))) })
       menuItems.push({ label: t('sidebar.newFolder'), run: () => onNewFolder(joinPath(targetDir, uniqueName('New Folder', siblings))) })
     }
-    if (menu.node !== null) {
-      menuItems.push({ label: t('sidebar.rename'), run: () => onRenameRequest(menu.node!.path) })
-      menuItems.push({ label: t('sidebar.delete'), run: () => onDelete(menu.node!.path) })
+    if (menuNode) {
+      menuItems.push({ label: t('sidebar.rename'), run: () => onRenameRequest(menuNode.path) })
+      menuItems.push({ label: t('sidebar.delete'), run: () => onDelete(menuNode.path) })
     }
   }
 
@@ -129,8 +168,8 @@ export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenF
     <div className="file-tree" onContextMenu={openRootMenu}>
       {tree.length === 0 && <p className="sidebar-empty">{t('sidebar.openFolder')}</p>}
       {tree.map(entry => (
-        <Node key={entry.path} entry={entry} selectedPath={selectedPath}
-          onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={openNodeMenu} />
+        <Node key={entry.path} entry={entry} isOpen={isOpen} selectedPath={selectedPath}
+          onToggle={onToggle} onSelect={onSelect} onOpenFile={onOpenFile} onContextMenu={openNodeMenu} />
       ))}
       {menu && (
         <div className="context-menu" onMouseDown={e => e.stopPropagation()} style={{ left: menu.x, top: menu.y }}>

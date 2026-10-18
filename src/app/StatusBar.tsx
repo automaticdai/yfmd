@@ -12,7 +12,7 @@ export function StatusBar({ path, dirty, sourceMode, readOnly, stats }: Props) {
         {dirty && <span className="dirty-dot" title={t('status.unsaved')}> ●</span>}
       </span>
       <span className="status-right">
-        <span className="status-stats" title={t('status.readingTime', { n: readingMinutes(stats.words) })}>
+        <span className="status-stats" title={t('status.readingTime', { n: readingMinutes(stats) })}>
           {t('status.words', { n: stats.words })} · {t('status.chars', { n: stats.chars })}
         </span>
         {readOnly && <span className="readonly-badge">{t('status.readOnly')}</span>}

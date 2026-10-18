@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { BrowserFileService } from '../services/browser-file-service'
 import { type ConfirmResult, type DocMeta, DocumentController } from './document-controller'
 
-function harness(confirmAnswers: ConfirmResult[] = []) {
+function harness(confirmAnswers: ConfirmResult[] = [], confirmReload = false) {
   const fs = new BrowserFileService()
   let text = ''
   const metas: DocMeta[] = []
+  const messages: string[] = []
   const controller = new DocumentController(fs, {
     getText: () => text,
     setText: t => { text = t },
     confirmDiscard: async () => confirmAnswers.shift() ?? 'discard',
-    notify: () => {},
+    confirmReload: async () => confirmReload,
+    notify: m => messages.push(m),
     onMetaChange: m => metas.push({ ...m }),
   })
-  return { fs, controller, metas, text: () => text, type: (t: string) => { text = t; controller.markDirty() } }
+  return { fs, controller, metas, messages, text: () => text, type: (t: string) => { text = t; controller.markDirty() } }
 }
 
 describe('DocumentController', () => {
@@ -128,6 +130,7 @@ describe('DocumentController', () => {
       getText: () => text,
       setText: t => { text = t },
       confirmDiscard: async () => 'discard',
+      confirmReload: async () => false,
       notify: m => messages.push(m),
       onMetaChange: () => {},
     })
@@ -240,6 +243,82 @@ it('abandons save-as if the document changes while its dialog is open', async ()
   expect(await saving).toBe(false)
   expect(h.fs.files.has('/old.md')).toBe(false)
   expect(h.controller.meta.path).toBeNull()
+})
+
+it('reloads a clean buffer when the file changes on disk', async () => {
+  const h = harness()
+  await h.fs.writeFile('/a.md', 'old')
+  await h.controller.openPath('/a.md')
+  h.fs.files.set('/a.md', 'from disk')
+  h.fs.mtimes.set('/a.md', (h.fs.mtimes.get('/a.md') ?? 0) + 10)
+  expect(await h.controller.checkDisk()).toBe('reloaded')
+  expect(h.text()).toBe('from disk')
+  expect(h.controller.meta.dirty).toBe(false)
+  expect(h.controller.externalChange).toBe(false)
+  expect(h.messages.some(m => /reloaded/i.test(m))).toBe(true)
+})
+
+it('blocks autosave when a dirty buffer diverges, until an explicit save', async () => {
+  const h = harness()
+  await h.fs.writeFile('/a.md', 'old')
+  await h.controller.openPath('/a.md')
+  h.type('local')
+  h.fs.files.set('/a.md', 'from disk')
+  h.fs.mtimes.set('/a.md', (h.fs.mtimes.get('/a.md') ?? 0) + 10)
+  expect(await h.controller.checkDisk()).toBe('conflict')
+  expect(h.text()).toBe('local')
+  expect(h.controller.externalChange).toBe(true)
+  expect(await h.controller.save({ autosave: true })).toBe(false)
+  expect(await h.fs.readFile('/a.md')).toBe('from disk')
+  expect(await h.controller.save()).toBe(true)
+  expect(await h.fs.readFile('/a.md')).toBe('local')
+  expect(h.controller.externalChange).toBe(false)
+})
+
+it('reloads a dirty buffer when the user chooses to', async () => {
+  const fs = new BrowserFileService()
+  let text = ''
+  const controller = new DocumentController(fs, {
+    getText: () => text,
+    setText: t => { text = t },
+    confirmDiscard: async () => 'discard',
+    confirmReload: async () => true,
+    notify: () => {},
+    onMetaChange: () => {},
+  })
+  await fs.writeFile('/a.md', 'old')
+  await controller.openPath('/a.md')
+  text = 'local'
+  controller.markDirty()
+  fs.files.set('/a.md', 'from disk')
+  fs.mtimes.set('/a.md', (fs.mtimes.get('/a.md') ?? 0) + 10)
+  expect(await controller.checkDisk()).toBe('reloaded')
+  expect(text).toBe('from disk')
+  expect(controller.meta.dirty).toBe(false)
+})
+
+it('pauses autosave when the file disappears', async () => {
+  const h = harness()
+  await h.fs.writeFile('/a.md', 'old')
+  await h.controller.openPath('/a.md')
+  h.fs.files.delete('/a.md')
+  h.fs.mtimes.delete('/a.md')
+  expect(await h.controller.checkDisk()).toBe('missing')
+  expect(h.controller.meta.dirty).toBe(true)
+  expect(h.controller.externalChange).toBe(true)
+  expect(await h.controller.save({ autosave: true })).toBe(false)
+  expect(h.messages.some(m => /removed/i.test(m))).toBe(true)
+})
+
+it('loads a folder one level at a time', async () => {
+  const h = harness()
+  await h.fs.writeFile('/notes/a.md', 'a')
+  await h.fs.writeFile('/notes/sub/b.md', 'b')
+  await h.controller.openFolderPath('/notes')
+  expect(h.controller.meta.tree!.map(e => e.name)).toEqual(['sub', 'a.md'])
+  expect(h.controller.meta.tree![0].children).toBeUndefined()
+  await h.controller.loadChildren('/notes/sub')
+  expect(h.controller.meta.tree![0].children!.map(e => e.name)).toEqual(['b.md'])
 })
 
 it('normalizes Windows input and tracks documents inside renamed directories', async () => {

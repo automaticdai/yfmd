@@ -30,7 +30,7 @@ export function AboutDialog({ onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="about-dialog">
+      <div className="about-dialog" role="dialog" aria-modal="true" aria-label={t('help.about')}>
         <h2>yfmd</h2>
         <p className="about-version">
           {t('about.version')}{' '}

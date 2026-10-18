@@ -109,10 +109,10 @@ export function SettingsDialog({ settings, onChange, onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="settings-dialog">
+      <div className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <div className="settings-header">
-          <h2>{t('settings.title')}</h2>
-          <button className="settings-close" onClick={onClose} aria-label="Close">×</button>
+          <h2 id="settings-title">{t('settings.title')}</h2>
+          <button className="settings-close" onClick={onClose} aria-label={t('about.close')}>×</button>
         </div>
         <div className="settings-tabs" role="tablist">
           {tabs.map(tb => (

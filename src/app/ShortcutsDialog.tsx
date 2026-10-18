@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { type MessageKey, t } from './i18n'
+import { formatShortcut } from './platform'
 
 interface Props { onClose(): void }
 
@@ -58,7 +59,7 @@ const SECTIONS: Section[] = [
 
 /** Render "Ctrl+Shift+S" as separate <kbd> chips. */
 function Keys({ combo }: { combo: string }) {
-  const parts = combo.split('+')
+  const parts = formatShortcut(combo).split('+')
   return (
     <span className="shortcut-keys">
       {parts.map((k, i) => (
@@ -77,7 +78,7 @@ export function ShortcutsDialog({ onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="shortcuts-dialog" role="dialog" aria-label={t('help.shortcuts')}>
+      <div className="shortcuts-dialog" role="dialog" aria-modal="true" aria-label={t('help.shortcuts')}>
         <h2>{t('help.shortcuts')}</h2>
         <div className="shortcuts-body">
           {SECTIONS.map(section => (

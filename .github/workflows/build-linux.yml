@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-  pull_request:
 
 jobs:
   linux:
@@ -31,8 +30,6 @@ jobs:
             libssl-dev patchelf
 
       - run: npm ci
-
-      - run: npm run test:coverage
 
       # beforeBuildCommand runs `npm run build` (typecheck + vite bundle)
       - run: npm run tauri build

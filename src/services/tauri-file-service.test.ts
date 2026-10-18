@@ -6,7 +6,7 @@ import { TauriFileService } from './tauri-file-service'
 import capability from '../../src-tauri/capabilities/default.json'
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }))
-vi.mock('@tauri-apps/plugin-fs', () => ({ readFile: vi.fn(), readTextFile: vi.fn(), writeFile: vi.fn(), writeTextFile: vi.fn(), mkdir: vi.fn(), rename: vi.fn(), remove: vi.fn() }))
+vi.mock('@tauri-apps/plugin-fs', () => ({ readFile: vi.fn(), readTextFile: vi.fn(), writeFile: vi.fn(), writeTextFile: vi.fn(), mkdir: vi.fn(), rename: vi.fn(), remove: vi.fn(), stat: vi.fn() }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), convertFileSrc: (path: string) => `asset:${path}` }))
 vi.mock('@tauri-apps/api/path', () => ({ documentDir: async () => 'C:\\Documents', join: async (...parts: string[]) => parts.join('/') }))
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }))

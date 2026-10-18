@@ -1,6 +1,6 @@
 import welcome from '../assets/welcome.md?raw'
 import {
-  buildTree, type FileEntry, type FileService, type OpenedFile, type OpenedFolder,
+  listOneLevel, normalizePath, type FileEntry, type FileService, type OpenedFile, type OpenedFolder,
   type OpenedImage,
 } from './file-service'
 
@@ -11,8 +11,12 @@ import {
  */
 export class BrowserFileService implements FileService {
   files = new Map<string, string>([['/welcome.md', welcome]])
+  /** Explicit directories, including empty ones. File paths also imply their parents. */
+  dirs = new Set<string>()
+  mtimes = new Map<string, number>()
   dialogQueue: (string | null)[] = []
   private untitledCounter = 0
+  private mtimeClock = 1
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -24,18 +28,13 @@ export class BrowserFileService implements FileService {
     return this.dialogQueue.length > 0 ? this.dialogQueue.shift()! : fallback
   }
 
+  private bump(path: string): void {
+    this.mtimeClock += 1
+    this.mtimes.set(path, this.mtimeClock)
+  }
+
   private listTree(path: string): FileEntry[] {
-    const prefix = path === '/' ? '/' : path + '/'
-    const rel = [...this.files.keys()]
-      .filter(p => p.startsWith(prefix))
-      .map(p => '/' + p.slice(prefix.length))
-    const fix = (entries: FileEntry[]): FileEntry[] =>
-      entries.map(e => ({
-        ...e,
-        path: (path === '/' ? '' : path) + e.path,
-        children: e.children ? fix(e.children) : undefined,
-      }))
-    return fix(buildTree(rel))
+    return listOneLevel(path, [...this.files.keys()], [...this.dirs])
   }
 
   async openFileDialog(): Promise<OpenedFile | null> {
@@ -62,35 +61,70 @@ export class BrowserFileService implements FileService {
   }
 
   async writeFile(path: string, content: string): Promise<void> {
-    this.files.set(path, content)
+    this.files.set(normalizePath(path), content)
+    this.bump(normalizePath(path))
   }
 
   async writeBinary(path: string, data: Uint8Array): Promise<void> {
     let bin = ''
     for (const b of data) bin += String.fromCharCode(b)
-    this.files.set(path, btoa(bin))
+    const key = normalizePath(path)
+    this.files.set(key, btoa(bin))
+    this.bump(key)
   }
 
-  async mkdir(_path: string): Promise<void> {
-    // in-memory: directories are implicit
+  async mkdir(path: string): Promise<void> {
+    this.dirs.add(normalizePath(path))
   }
 
   async rename(oldPath: string, newPath: string): Promise<void> {
+    oldPath = normalizePath(oldPath)
+    newPath = normalizePath(newPath)
     const toMove = [...this.files.keys()].filter(p => p === oldPath || p.startsWith(oldPath + '/'))
     for (const p of toMove) {
-      this.files.set(newPath + p.slice(oldPath.length), this.files.get(p)!)
+      const next = newPath + p.slice(oldPath.length)
+      this.files.set(next, this.files.get(p)!)
       this.files.delete(p)
+      const mtime = this.mtimes.get(p)
+      if (mtime !== undefined) {
+        this.mtimes.set(next, mtime)
+        this.mtimes.delete(p)
+      }
     }
+    const nextDirs = new Set<string>()
+    for (const dir of this.dirs) {
+      if (dir === oldPath || dir.startsWith(oldPath + '/')) nextDirs.add(newPath + dir.slice(oldPath.length))
+      else nextDirs.add(dir)
+    }
+    this.dirs = nextDirs
   }
 
   async remove(path: string): Promise<void> {
+    path = normalizePath(path)
     for (const p of [...this.files.keys()]) {
-      if (p === path || p.startsWith(path + '/')) this.files.delete(p)
+      if (p === path || p.startsWith(path + '/')) {
+        this.files.delete(p)
+        this.mtimes.delete(p)
+      }
+    }
+    for (const dir of [...this.dirs]) {
+      if (dir === path || dir.startsWith(path + '/')) this.dirs.delete(dir)
     }
   }
 
   async listFolder(path: string): Promise<FileEntry[]> {
     return this.listTree(path)
+  }
+
+  async fileMtime(path: string): Promise<number | null> {
+    path = normalizePath(path)
+    if (!this.files.has(path)) return null
+    if (!this.mtimes.has(path)) this.bump(path)
+    return this.mtimes.get(path) ?? null
+  }
+
+  async grantAccess(_path: string): Promise<void> {
+    // the browser store has no capability scope
   }
 
   async defaultDir(): Promise<string> {

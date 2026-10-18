@@ -3,6 +3,8 @@ import { expect, type Page } from '@playwright/test'
 export async function openApp(page: Page): Promise<void> {
   await page.goto('/')
   await expect(page.locator('.cm-content')).toBeVisible()
+  // The in-memory file service is attached after its module loads.
+  await page.waitForFunction(() => '__yfmdFs' in window)
 }
 
 /** Replace the whole document through the editor API (deterministic setup). */

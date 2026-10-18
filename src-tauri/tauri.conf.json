@@ -12,8 +12,16 @@
   "app": {
     "windows": [{ "title": "yfmd", "width": 1100, "height": 780 }],
     "security": {
-      "csp": null,
-      "assetProtocol": { "enable": true, "scope": ["**"] }
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost https://asset.localhost blob: data:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost https://api.github.com; object-src 'none'; base-uri 'self'; frame-src 'self' blob:",
+      "devCsp": "default-src 'self' http://localhost:5173; script-src 'self' 'unsafe-eval' 'unsafe-inline' http://localhost:5173; style-src 'self' 'unsafe-inline' http://localhost:5173; img-src 'self' asset: http://asset.localhost https://asset.localhost blob: data: http://localhost:5173; font-src 'self' data: http://localhost:5173; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost http://localhost:5173 ws://localhost:5173 https://api.github.com; object-src 'none'; base-uri 'self'; frame-src 'self' blob:",
+      "dangerousDisableAssetCspModification": ["style-src"],
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": [],
+          "deny": ["$HOME/.ssh/**", "$HOME/.gnupg/**", "$HOME/.aws/**", "$HOME/.kube/**"]
+        }
+      }
     }
   },
   "bundle": {

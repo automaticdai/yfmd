@@ -6,7 +6,9 @@ import { dirname, normalizePath, type FileService } from '../services/file-servi
  * return the markdown src to insert. Relative to the document when it has a
  * path, absolute (under the default directory) otherwise.
  */
-export function makeImageSaver(fs: FileService, docPath: string | null): ImageSaver {
+export function makeImageSaver(
+  fs: FileService, docPath: string | null, onError?: (message: string) => void,
+): ImageSaver {
   return async (data, ext) => {
     try {
       const name = `image-${Date.now()}.${ext}`
@@ -16,7 +18,8 @@ export function makeImageSaver(fs: FileService, docPath: string | null): ImageSa
       const path = dir + '/' + name
       await fs.writeBinary(path, data)
       return docPath ? `assets/${name}` : path
-    } catch {
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : String(err))
       return null
     }
   }

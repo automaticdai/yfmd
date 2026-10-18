@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { t } from './i18n'
+import { formatShortcut } from './platform'
 import { formatRecentLabels } from './recent-files'
 import { THEMES } from './settings'
 
@@ -160,11 +161,11 @@ function MenuItems({ items, onSelect, checkedActions }: {
         if ('submenu' in item) {
           return (
             <div className="menu-sub" key={item.label}>
-              <button className="menu-sub-title">
+              <button className="menu-sub-title" role="menuitem" aria-haspopup="true">
                 <span>{item.label}</span>
                 <span className="sub-arrow">▸</span>
               </button>
-              <div className="menu-items menu-sub-items">
+              <div className="menu-items menu-sub-items" role="menu">
                 <MenuItems items={item.items} onSelect={onSelect} checkedActions={checkedActions} />
               </div>
             </div>
@@ -173,7 +174,7 @@ function MenuItems({ items, onSelect, checkedActions }: {
         // Empty-state placeholder (e.g. "No Recent Files")
         if (!item.action) {
           return (
-            <button key={`empty-${i}`} className="menu-disabled" disabled>
+            <button key={`empty-${i}`} role="menuitem" className="menu-disabled" disabled>
               <span>{item.label}</span>
             </button>
           )
@@ -184,13 +185,14 @@ function MenuItems({ items, onSelect, checkedActions }: {
         return (
           <button
             key={item.action}
+            role="menuitem"
             data-action={item.action}
             className={checkedActions?.has(item.action) ? 'checked' : undefined}
             title={item.title}
             onClick={() => onSelect(item.action)}
           >
             <span>{checkedActions?.has(item.action) ? '✓ ' : ''}{item.label}</span>
-            {item.shortcut && <span className="shortcut">{item.shortcut}</span>}
+            {item.shortcut && <span className="shortcut">{formatShortcut(item.shortcut)}</span>}
             {recentPath && (
               <span
                 className="recent-remove"
@@ -217,21 +219,48 @@ export function MenuBar({ onAction, checkedActions, recent }: MenuBarProps) {
     return () => window.removeEventListener('mousedown', close)
   }, [])
 
+  useEffect(() => {
+    if (!open || !barRef.current) return
+    barRef.current.querySelector<HTMLButtonElement>('.menu-title.open + .menu-items > button, .menu-title.open + .menu-items > .menu-sub > .menu-sub-title')?.focus()
+  }, [open])
+
+  const onMenuKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setOpen(null)
+      return
+    }
+    if (!open || !barRef.current) return
+    const buttons = [...barRef.current.querySelectorAll<HTMLButtonElement>('.menu-title.open + .menu-items button')]
+      .filter(button => !button.disabled && button.offsetParent !== null)
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const next = e.key === 'ArrowDown' ? index + 1 : index - 1
+      buttons[(next + buttons.length) % buttons.length]?.focus()
+    } else if (e.key === 'ArrowRight') {
+      const nested = (document.activeElement as HTMLElement | null)?.closest('.menu-sub')
+        ?.querySelector<HTMLButtonElement>('.menu-sub-items button')
+      nested?.focus()
+    }
+  }
+
   const menus = buildMenus(recent)
   const select = (action: string) => { setOpen(null); onAction(action) }
 
   return (
-    <div className="menubar" ref={barRef}>
+    <div className="menubar" role="menubar" ref={barRef} onKeyDown={onMenuKey}>
       {menus.map(menu => (
         <div className="menu" key={menu.title}>
           <button
             className={'menu-title' + (open === menu.title ? ' open' : '')}
+            aria-haspopup="true"
+            aria-expanded={open === menu.title}
             onClick={() => setOpen(open === menu.title ? null : menu.title)}
           >
             {menu.title}
           </button>
           {open === menu.title && (
-            <div className="menu-items">
+            <div className="menu-items" role="menu">
               <MenuItems items={menu.items} onSelect={select} checkedActions={checkedActions} />
             </div>
           )}

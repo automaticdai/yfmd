@@ -1,4 +1,4 @@
-import { normalizePath, type FileEntry, type FileService } from '../services/file-service'
+import { dirname, loadedDirPaths, normalizePath, upsertChildren, type FileEntry, type FileService } from '../services/file-service'
 import { t } from './i18n'
 import { addRecent } from './recent-files'
 
@@ -15,6 +15,8 @@ export interface DocHost {
   getText(): string
   setText(text: string): void
   confirmDiscard(): Promise<ConfirmResult>
+  /** True = drop local edits and load the copy on disk. */
+  confirmReload(): Promise<boolean>
   notify(message: string): void
   onMetaChange(meta: DocMeta): void
 }
@@ -27,6 +29,13 @@ export class DocumentController {
   private openRequest = 0
   private confirmation: Promise<ConfirmResult> | null = null
   private writes: Promise<unknown> = Promise.resolve()
+  /** mtime captured at the last successful load or save. */
+  private diskMtime: number | null = null
+  private diskGone = false
+  private promptedMtime: number | null = null
+  private checking = false
+  /** Set when the file on disk diverged from this buffer. Autosave must not overwrite it. */
+  externalChange = false
 
   constructor(private fs: FileService, private host: DocHost) {}
 
@@ -66,7 +75,13 @@ export class DocumentController {
     this.revision++
     this.meta.path = opened.path === null ? null : normalizePath(opened.path)
     this.host.setText(opened.content)
-    this.meta.dirty = false
+    const loadedRevision = this.revision
+    this.diskMtime = this.meta.path ? await this.fs.fileMtime(this.meta.path) : null
+    if (request !== this.openRequest) return
+    this.externalChange = false
+    this.diskGone = false
+    this.promptedMtime = null
+    if (this.revision === loadedRevision) this.meta.dirty = false
     if (this.meta.path) addRecent(this.meta.path)
     this.emit()
   }
@@ -115,16 +130,46 @@ export class DocumentController {
     return path !== null && (path === base || path.startsWith(base.replace(/\/$/, '') + '/'))
   }
 
-  private async refreshTree(): Promise<void> {
+  private async refreshTree(revealDir?: string): Promise<void> {
     if (this.meta.folderPath === null) return
-    this.meta.tree = await this.fs.listFolder(this.meta.folderPath)
+    const loaded = new Set(loadedDirPaths(this.meta.tree ?? []))
+    if (revealDir) loaded.add(normalizePath(revealDir))
+    const root = await this.fs.listFolder(this.meta.folderPath)
+    this.meta.tree = await this.hydrate(root, loaded)
     this.emit()
+  }
+
+  private async hydrate(entries: FileEntry[], loaded: Set<string>): Promise<FileEntry[]> {
+    const out: FileEntry[] = []
+    for (const entry of entries) {
+      if (entry.isDir && loaded.has(entry.path)) {
+        const children = await this.hydrate(await this.fs.listFolder(entry.path), loaded)
+        out.push({ ...entry, children })
+      } else {
+        out.push({ name: entry.name, path: entry.path, isDir: entry.isDir })
+      }
+    }
+    return out
+  }
+
+  /** Load one directory level into the open tree. */
+  async loadChildren(path: string): Promise<void> {
+    path = normalizePath(path)
+    if (!this.meta.tree) return
+    try {
+      await this.fs.grantAccess(path)
+      const children = await this.fs.listFolder(path)
+      this.meta.tree = upsertChildren(this.meta.tree, path, children)
+      this.emit()
+    } catch (err) {
+      this.host.notify(t('toast.openFolderFailed', { error: err instanceof Error ? err.message : String(err) }))
+    }
   }
 
   async createFile(path: string): Promise<void> {
     try {
       await this.fs.writeFile(path, '')
-      await this.refreshTree()
+      await this.refreshTree(dirname(path))
     } catch (err) {
       this.host.notify(t('toast.createFailed', { error: err instanceof Error ? err.message : String(err) }))
     }
@@ -133,7 +178,7 @@ export class DocumentController {
   async createFolder(path: string): Promise<void> {
     try {
       await this.fs.mkdir(path)
-      await this.refreshTree()
+      await this.refreshTree(dirname(path))
     } catch (err) {
       this.host.notify(t('toast.createFailed', { error: err instanceof Error ? err.message : String(err) }))
     }
@@ -179,6 +224,10 @@ export class DocumentController {
         this.meta.path = path
         addRecent(path)
       }
+      this.diskMtime = await this.fs.fileMtime(path)
+      this.externalChange = false
+      this.diskGone = false
+      this.promptedMtime = null
       this.meta.dirty = revision !== this.revision
       this.emit()
       return !this.meta.dirty
@@ -188,9 +237,80 @@ export class DocumentController {
     }
   }
 
-  async save(): Promise<boolean> {
+  async save(opts?: { autosave?: boolean }): Promise<boolean> {
+    if (opts?.autosave && this.externalChange) return false
     if (this.meta.path === null) return this.saveAs()
     return this.writeSnapshot(this.meta.path, false)
+  }
+
+  /**
+   * Compare the open file with disk. A clean buffer reloads. A dirty buffer
+   * asks once and refuses autosave until the user saves or reloads.
+   */
+  async checkDisk(): Promise<'unchanged' | 'reloaded' | 'conflict' | 'missing'> {
+    const path = this.meta.path
+    if (!path || this.checking) return 'unchanged'
+    this.checking = true
+    try {
+      const mtime = await this.fs.fileMtime(path)
+      if (this.meta.path !== path) return 'unchanged'
+      if (mtime === null) {
+        if (this.diskGone) return 'missing'
+        this.diskGone = true
+        this.externalChange = true
+        if (!this.meta.dirty) {
+          this.meta.dirty = true
+          this.revision++
+        }
+        this.emit()
+        this.host.notify(t('toast.fileRemoved'))
+        return 'missing'
+      }
+      this.diskGone = false
+      if (this.diskMtime === null || mtime === this.diskMtime) {
+        this.diskMtime = mtime
+        return 'unchanged'
+      }
+      if (!this.meta.dirty) {
+        const content = await this.fs.readFile(path)
+        if (this.meta.path !== path) return 'unchanged'
+        this.host.setText(content)
+        const revision = this.revision
+        this.diskMtime = await this.fs.fileMtime(path)
+        if (this.meta.path !== path) return 'unchanged'
+        this.externalChange = false
+        this.promptedMtime = null
+        if (this.revision === revision) this.meta.dirty = false
+        this.emit()
+        this.host.notify(t('toast.reloaded'))
+        return 'reloaded'
+      }
+      this.externalChange = true
+      if (this.promptedMtime !== mtime) {
+        this.promptedMtime = mtime
+        const reload = await this.host.confirmReload()
+        if (this.meta.path !== path) return 'conflict'
+        if (reload) {
+          const content = await this.fs.readFile(path)
+          if (this.meta.path !== path) return 'conflict'
+          this.host.setText(content)
+          const revision = this.revision
+          this.diskMtime = await this.fs.fileMtime(path)
+          this.externalChange = false
+          this.promptedMtime = null
+          if (this.revision === revision) this.meta.dirty = false
+          this.emit()
+          this.host.notify(t('toast.reloaded'))
+          return 'reloaded'
+        }
+      }
+      return 'conflict'
+    } catch (err) {
+      this.host.notify(t('toast.openFailed', { error: err instanceof Error ? err.message : String(err) }))
+      return 'unchanged'
+    } finally {
+      this.checking = false
+    }
   }
 
   async saveAs(): Promise<boolean> {

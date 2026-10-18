@@ -91,7 +91,8 @@ body {
 .sub-arrow { color: var(--fg-muted); }
 .menu-sub-title:hover .sub-arrow { color: #fff; }
 .menu-sub-items { display: none; left: 100%; top: 0; }
-.menu-sub:hover > .menu-sub-items { display: flex; }
+.menu-sub:hover > .menu-sub-items,
+.menu-sub:focus-within > .menu-sub-items { display: flex; }
 .menu-disabled {
   display: flex; background: none; border: none; font-size: 13px;
   padding: 6px 10px; color: var(--fg-muted); cursor: default; font-style: italic;

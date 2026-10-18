@@ -40,23 +40,34 @@ block your cursor touches reveals its raw markdown syntax for editing.
 - **Settings & Typography** — customize editor/code fonts with CJK fallbacks, max
   text width, side margins, font size, line height, autosave, code block line numbers,
   and which optional markdown syntaxes are rendered
-- **File panel** — folder file tree on the left; toggle with `F9`, drag its
-  right edge to resize (width is remembered)
+- **File panel** — folder file tree on the left, one directory level at a time;
+  toggle with `F9`, drag its right edge to resize (width is remembered)
 - **Outline panel** — a live document outline with jump-to-heading in its own
   panel on the right; toggle with `F10` (View menu), also resizable
 - **Fullscreen Mode** — `F11` (View menu) toggles real fullscreen — the native
   window under Tauri, the Fullscreen API in the browser
 - **Writing aids** — focus mode (`F8`, dims everything but the active line) and
   typewriter mode (View menu, keeps the cursor vertically centered),
-  word/character count with reading time in the status bar
-- **Custom themes** — import a Typora-style CSS theme (Theme menu), applied to
-  both the editor and HTML export
+  spellcheck, and a word/character count with reading time in the status bar.
+  Each Han, Hiragana, Katakana, or Hangul character counts as one word;
+  reading time uses 200 words/min for other words and 400 characters/min for those
+- **Startup** — the first launch opens the Markdown Guide. Later launches open a
+  blank page. Help → Markdown Guide opens the guide again. The last file is not
+  restored. Sidebar, outline, focus, typewriter, source, and read-only are remembered
+- **Files on disk** — a clean document reloads when the file changes outside the
+  editor. Unsaved edits ask you to reload or keep them, and autosave stays paused
+  until you reload or save. A file deleted on disk is left dirty instead of being
+  written back
+- **Custom themes** — import a Typora-style CSS theme (Theme menu). The editor
+  takes its palette; HTML export includes the stylesheet after stripping `@import`,
+  `expression(`, `javascript:`, and style-tag breakouts
 - **Export** — standalone HTML (MathML math, inline mermaid SVG, alerts,
   inlined CSS/highlighting, embedded local images) and PDF via the system print dialog
 - **Read-Only Mode** — View menu; locks the document (no typing, menu edit
   commands are inert), shows a `READ-ONLY` badge in the status bar
 - **Help menu** — a Keyboard Shortcuts reference dialog, "Markdown Guide" (opens
-  the built-in welcome document), Report an Issue, and Check for Updates
+  the built-in welcome document), Report an Issue, and Check for Updates (compares
+  this version with the latest GitHub release)
 - **Light/dark themes**, source-mode toggle (`Ctrl+/`), find/replace (`Ctrl+F`)
 
 The markdown text is always the single source of truth: rendering is a decoration
@@ -94,17 +105,19 @@ sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev
 - **Shell**: React drives the menubar, sidebar, status bar, and dialogs, and talks
   to files only through a `FileService` interface — an in-memory implementation for
   browser dev/tests, a native one (dialogs, fs, folder listing via a Rust command)
-  inside Tauri.
+  inside Tauri. Opening a file or folder grants that directory at runtime. The
+  asset protocol does not serve SSH, GPG, AWS, or kube credential paths.
 - **Export**: a separate markdown-it pipeline with KaTeX (`output: 'mathml'`) and
   mermaid-to-SVG post-processing produces standalone HTML with embedded local images.
   Remote images retain their URLs and require a network connection.
 
 ## CI & releases
 
-GitHub Actions builds the desktop app on Linux, macOS and Windows on every push
-to `main` and every PR. Pushing a `v*` tag (with `src-tauri/tauri.conf.json`'s
-`version` bumped to match) publishes a draft GitHub release with installers for
-all three platforms via the `release` workflow.
+Pull requests and pushes to `main` run the unit tests and the Playwright
+end-to-end tests. Desktop packages are built on Linux, macOS, and Windows for
+pushes to `main` and for manual runs. Pushing a `v*` tag (with
+`src-tauri/tauri.conf.json`'s `version` bumped to match) publishes a draft GitHub
+release with installers for all three platforms via the `release` workflow.
 
 ## License
 

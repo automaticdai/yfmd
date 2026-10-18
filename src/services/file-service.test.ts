@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTree, dirname, isMarkdownFile, normalizePath } from './file-service'
+import { buildTree, dirname, isMarkdownFile, listOneLevel, loadedDirPaths, normalizePath, upsertChildren } from './file-service'
 import { BrowserFileService } from './browser-file-service'
 
 describe('path helpers', () => {
@@ -16,6 +16,25 @@ describe('path helpers', () => {
   it('dirname', () => {
     expect(dirname('/a/b/c.md')).toBe('/a/b')
     expect(dirname('c.md')).toBe('')
+  })
+})
+
+describe('listOneLevel', () => {
+  it('returns only the next path segment and omits unloaded children', () => {
+    const tree = listOneLevel('/docs', ['/docs/z.md', '/docs/sub/a.md', '/readme.md'])
+    expect(tree.map(e => e.name)).toEqual(['sub', 'z.md'])
+    expect(tree[0].children).toBeUndefined()
+    expect(listOneLevel('/docs/sub', ['/docs/sub/a.md']).map(e => e.path)).toEqual(['/docs/sub/a.md'])
+  })
+
+  it('remembers which directories were expanded', () => {
+    const tree = upsertChildren(
+      listOneLevel('/docs', ['/docs/sub/a.md']),
+      '/docs/sub',
+      listOneLevel('/docs/sub', ['/docs/sub/a.md']),
+    )
+    expect(loadedDirPaths(tree)).toEqual(['/docs/sub'])
+    expect(tree[0].children?.[0].name).toBe('a.md')
   })
 })
 

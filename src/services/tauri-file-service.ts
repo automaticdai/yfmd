@@ -7,6 +7,7 @@ import {
   readTextFile,
   remove as fsRemove,
   rename as fsRename,
+  stat,
   writeFile,
   writeTextFile,
 } from '@tauri-apps/plugin-fs'
@@ -21,6 +22,11 @@ const IMAGE_FILTERS = [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif
 const CSS_FILTERS = [{ name: 'CSS', extensions: ['css'] }]
 
 export class TauriFileService implements FileService {
+  /** Grant the path's directory to the fs and asset scopes before touching it. */
+  grantAccess(path: string): Promise<void> {
+    return invoke('grant_access', { path })
+  }
+
   async openFileDialog(): Promise<OpenedFile | null> {
     const path = await open({ multiple: false, directory: false, filters: MD_FILTERS })
     if (typeof path !== 'string') return null
@@ -28,40 +34,59 @@ export class TauriFileService implements FileService {
   }
 
   async openFolderDialog(): Promise<OpenedFolder | null> {
-    const path = await open({ directory: true, multiple: false })
+    const path = await open({ directory: true, multiple: false, recursive: true })
     if (typeof path !== 'string') return null
     return { path: normalizePath(path), tree: await this.listFolder(path) }
   }
 
-  readFile(path: string): Promise<string> {
+  async readFile(path: string): Promise<string> {
+    await this.grantAccess(path)
     return readTextFile(path)
   }
 
-  readBinary(path: string): Promise<Uint8Array> {
+  async readBinary(path: string): Promise<Uint8Array> {
+    await this.grantAccess(path)
     return fsReadFile(path)
   }
 
   async writeFile(path: string, content: string): Promise<void> {
+    await this.grantAccess(path)
     await writeTextFile(path, content)
   }
 
   async writeBinary(path: string, data: Uint8Array): Promise<void> {
+    await this.grantAccess(path)
     await writeFile(path, data)
   }
 
   async mkdir(path: string): Promise<void> {
+    await this.grantAccess(path)
     await fsMkdir(path, { recursive: true })
   }
 
   async rename(oldPath: string, newPath: string): Promise<void> {
+    await this.grantAccess(oldPath)
+    await this.grantAccess(newPath)
     await fsRename(oldPath, newPath)
   }
 
   async remove(path: string): Promise<void> {
+    await this.grantAccess(path)
     await fsRemove(path, { recursive: true })
   }
 
+  async fileMtime(path: string): Promise<number | null> {
+    try {
+      await this.grantAccess(path)
+      const info = await stat(path)
+      return info.mtime?.getTime() ?? null
+    } catch {
+      return null
+    }
+  }
+
   async listFolder(path: string): Promise<FileEntry[]> {
+    await this.grantAccess(path)
     const normalizeEntries = (entries: FileEntry[]): FileEntry[] => entries.map(entry => ({
       ...entry, path: normalizePath(entry.path),
       ...(entry.children ? { children: normalizeEntries(entry.children) } : {}),

@@ -157,6 +157,15 @@ const en = {
   'toast.createFailed': 'Could not create: {error}',
   'toast.renameFailed': 'Could not rename: {error}',
   'toast.deleteFailed': 'Could not delete: {error}',
+  'toast.reloaded': 'Reloaded — the file changed on disk',
+  'toast.fileRemoved': 'The file was removed on disk. Autosave is paused.',
+  'toast.imageSaveFailed': 'Could not save image: {error}',
+  'toast.upToDate': 'yfmd {version} is up to date',
+  'toast.updateAvailable': 'Update {version} is available',
+  'toast.updateFailed': 'Could not check for updates: {error}',
+  'diskChange.title': '{name} changed on disk. Reload and discard your edits?',
+  'diskChange.reload': 'Reload',
+  'diskChange.keep': 'Keep editing',
 } as const
 
 export type MessageKey = keyof typeof en
@@ -315,6 +324,15 @@ const zhCN: Record<MessageKey, string> = {
   'toast.createFailed': '无法创建：{error}',
   'toast.renameFailed': '无法重命名：{error}',
   'toast.deleteFailed': '无法删除：{error}',
+  'toast.reloaded': '已重新加载——文件在磁盘上已更改',
+  'toast.fileRemoved': '文件已从磁盘删除。自动保存已暂停。',
+  'toast.imageSaveFailed': '无法保存图片：{error}',
+  'toast.upToDate': 'yfmd {version} 已是最新版本',
+  'toast.updateAvailable': '有可用更新 {version}',
+  'toast.updateFailed': '无法检查更新：{error}',
+  'diskChange.title': '{name} 已在磁盘上更改。重新加载并放弃你的编辑？',
+  'diskChange.reload': '重新加载',
+  'diskChange.keep': '继续编辑',
 }
 
 const MESSAGES: Record<Locale, Record<MessageKey, string>> = { en, 'zh-CN': zhCN }

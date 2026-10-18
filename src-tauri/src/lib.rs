@@ -11,9 +11,9 @@ struct Entry {
 }
 
 const SKIP_DIRS: &[&str] = &["node_modules", "target", "dist"];
-const MAX_DEPTH: u32 = 8;
 
-fn read_dir_recursive(dir: &std::path::Path, depth: u32) -> Vec<Entry> {
+/// One directory level. Children are loaded when the user expands a folder.
+fn read_dir_one(dir: &std::path::Path) -> Vec<Entry> {
     let mut out = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
         return out;
@@ -25,18 +25,11 @@ fn read_dir_recursive(dir: &std::path::Path, depth: u32) -> Vec<Entry> {
         }
         let path = entry.path();
         let is_dir = path.is_dir();
-        let children = if is_dir && depth < MAX_DEPTH {
-            Some(read_dir_recursive(&path, depth + 1))
-        } else if is_dir {
-            Some(Vec::new())
-        } else {
-            None
-        };
         out.push(Entry {
             name,
             path: path.to_string_lossy().to_string(),
             is_dir,
-            children,
+            children: None,
         });
     }
     out.sort_by(|a, b| {
@@ -48,12 +41,43 @@ fn read_dir_recursive(dir: &std::path::Path, depth: u32) -> Vec<Entry> {
 }
 
 #[tauri::command]
-fn list_dir(path: String) -> Result<Vec<Entry>, String> {
+fn list_dir(app: tauri::AppHandle, path: String) -> Result<Vec<Entry>, String> {
+    use tauri_plugin_fs::FsExt;
     let p = std::path::PathBuf::from(&path);
+    if !app.fs_scope().is_allowed(&p) {
+        return Err(format!("Path is not allowed: {path}"));
+    }
     if !p.is_dir() {
         return Err(format!("Not a directory: {path}"));
     }
-    Ok(read_dir_recursive(&p, 0))
+    Ok(read_dir_one(&p))
+}
+
+/// Allow the opened file's directory (or an opened folder) on the fs and asset scopes.
+#[tauri::command]
+fn grant_access(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri::Manager;
+    use tauri_plugin_fs::FsExt;
+    let p = std::path::PathBuf::from(&path);
+    let dir = if p.is_dir() {
+        p.clone()
+    } else {
+        p.parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .map(|parent| parent.to_path_buf())
+            .unwrap_or_else(|| p.clone())
+    };
+    app.fs_scope()
+        .allow_directory(&dir, true)
+        .map_err(|err| err.to_string())?;
+    app.asset_protocol_scope()
+        .allow_directory(&dir, true)
+        .map_err(|err| err.to_string())?;
+    if p.is_file() {
+        let _ = app.fs_scope().allow_file(&p);
+        let _ = app.asset_protocol_scope().allow_file(&p);
+    }
+    Ok(())
 }
 
 // File path the OS passed on launch (cold start via file association).
@@ -73,6 +97,7 @@ fn first_file_arg(args: impl Iterator<Item = String>) -> Option<String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
@@ -83,7 +108,7 @@ pub fn run() {
             }
         }))
         .manage(LaunchState(std::sync::Mutex::new(first_file_arg(std::env::args()))))
-        .invoke_handler(tauri::generate_handler![list_dir, get_launch_file])
+        .invoke_handler(tauri::generate_handler![list_dir, grant_access, get_launch_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

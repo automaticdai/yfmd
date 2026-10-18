@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { redo, undo } from '@codemirror/commands'
-import { EditorState } from '@codemirror/state'
+import { EditorState, type Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
 import welcome from './assets/welcome.md?raw'
 import { AboutDialog } from './app/AboutDialog'
 import { ShortcutsDialog } from './app/ShortcutsDialog'
 import { ConfirmDialog } from './app/ConfirmDialog'
+import { DiskChangeDialog } from './app/DiskChangeDialog'
 import { TableCreatorDialog } from './app/TableCreatorDialog'
 import { RenameDialog } from './app/RenameDialog'
 import { type ConfirmResult, type DocMeta, DocumentController } from './app/document-controller'
@@ -16,6 +17,10 @@ import { loadCustomTheme, saveCustomTheme } from './app/custom-theme'
 import { extractPalette } from './app/theme-import'
 import { countDocStats, type DocStats } from './app/word-count'
 import { clearRecent, loadRecent, removeRecent } from './app/recent-files'
+import pkg from '../package.json'
+import { chooseStartupDocument } from './app/startup'
+import { fetchLatestRelease } from './app/updates'
+import { loadViewSession, saveViewSession } from './app/view-session'
 import { MenuBar } from './app/MenuBar'
 import { StatusBar } from './app/StatusBar'
 import {
@@ -26,13 +31,11 @@ import { insertImage } from './editor/image-insert'
 import { addTableColumn, addTableRow, removeTableColumn, removeTableRow } from './editor/table-edit'
 import { insertToc } from './editor/toc'
 import {
-  copySelection, insertLink, pasteRichText, pasteText, setLivePreview, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
+  copySelection, insertLink, pasteRichText, pasteText, toggleBold, toggleInlineCode, toggleItalic, toggleStrikethrough,
 } from './editor/commands'
 import { exportHtml, exportPdf } from './export/export'
-import { imageResolver, imageSaver, rebuildWidgets, syntaxOptions, uiTheme } from './editor/live-preview/facets'
-import { createExtensions, codeLineNumbersCompartment, syntaxCompartment, imageSaverCompartment, readOnlyCompartment, readOnlyExtensions, resolverCompartment, themeCompartment, writingModeCompartment } from './editor/setup'
-import { codeLineNumbersField } from './editor/code-line-numbers'
-import { writingModeExtensions } from './editor/writing-mode'
+import { createExtensions } from './editor/setup'
+import { replaceEditorDocument, reapplyEditorSession, type EditorSession } from './editor/session'
 import { extractOutline, type OutlineItem } from './outline/outline'
 import { BODY_FONTS, CODE_FONTS, fontStack } from './app/fonts'
 import { loadSettings, saveSettings, type Settings, syntaxOptionsFrom, type ThemeName, THEMES } from './app/settings'
@@ -51,8 +54,9 @@ export default function App() {
   const pendingOpenRef = useRef<string | null>(null)
 
   const [meta, setMeta] = useState<DocMeta>({ path: null, dirty: false, folderPath: null, tree: null })
-  const [sourceMode, setSourceMode] = useState(false)
-  const sourceModeRef = useRef(false)
+  const initialView = useRef(loadViewSession()).current
+  const [sourceMode, setSourceMode] = useState(initialView.source)
+  const sourceModeRef = useRef(initialView.source)
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
   // Sync the module-level locale before children render so t() reflects settings.
   setLocale(settings.language)
@@ -62,32 +66,36 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [tableCreatorOpen, setTableCreatorOpen] = useState(false)
-  const [focusMode, setFocusMode] = useState(false)
-  const [typewriterMode, setTypewriterMode] = useState(false)
+  const [focusMode, setFocusMode] = useState(initialView.focus)
+  const [typewriterMode, setTypewriterMode] = useState(initialView.typewriter)
   const [alwaysOnTop, setAlwaysOnTop] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
-  const [readOnly, setReadOnly] = useState(false)
+  const [readOnly, setReadOnly] = useState(initialView.readOnly)
   const modesRef = useRef({ readOnly, focusMode, typewriterMode })
   modesRef.current = { readOnly, focusMode, typewriterMode }
   const [customThemeCss, setCustomThemeCss] = useState<string>(() => loadCustomTheme())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [sidebarVisible, setSidebarVisible] = useState(false)
-  const [outlineVisible, setOutlineVisible] = useState(false)
+  const [sidebarVisible, setSidebarVisible] = useState(initialView.sidebar)
+  const [outlineVisible, setOutlineVisible] = useState(initialView.outline)
+  const [diskPrompt, setDiskPrompt] = useState<string | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [renamePath, setRenamePath] = useState<string | null>(null)
   const [outline, setOutline] = useState<OutlineItem[]>([])
   const [recent, setRecent] = useState<string[]>(() => loadRecent())
-  const [stats, setStats] = useState<DocStats>(() => countDocStats(''))
+  const startupDoc = useRef(chooseStartupDocument(welcome)).current
+  const [stats, setStats] = useState<DocStats>(() => countDocStats(startupDoc))
   const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const extensionsRef = useRef<Extension[] | null>(null)
+  const diskResolve = useRef<((reload: boolean) => void) | null>(null)
 
   const scheduleAutosave = useCallback(() => {
     if (!settingsRef.current.autosave) return
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     autosaveTimer.current = setTimeout(() => {
       const c = controllerRef.current
-      if (c && c.meta.dirty && c.meta.path !== null) void c.save()
+      if (c && c.meta.dirty && c.meta.path !== null && !c.externalChange) void c.save({ autosave: true })
     }, 2000)
   }, [])
 
@@ -110,25 +118,37 @@ export default function App() {
     fsRef.current?.openExternal(url)
   }, [])
 
-  /** Push the current theme into the editor (mermaid re-render etc.). */
-  const applyEditorTheme = useCallback(() => {
-    const dark = THEMES.find(t => t.id === settingsRef.current.theme)?.dark ?? false
-    viewRef.current?.dispatch({
-      effects: [
-        themeCompartment.reconfigure(uiTheme.of(dark ? 'dark' : 'light')),
-        rebuildWidgets.of(null),
-      ],
-    })
-  }, [])
+  const readSession = useCallback((): EditorSession => {
+    const current = settingsRef.current
+    const modes = modesRef.current
+    const fs = fsRef.current
+    const path = controllerRef.current?.meta.path ?? null
+    return {
+      sourceMode: sourceModeRef.current,
+      readOnly: modes.readOnly,
+      focusMode: modes.focusMode,
+      typewriterMode: modes.typewriterMode,
+      codeLineNumbers: current.codeLineNumbers,
+      syntax: syntaxOptionsFrom(current),
+      dark: THEMES.find(item => item.id === current.theme)?.dark ?? false,
+      resolveImage: src => fs ? fs.resolveResource(path, src) : src,
+      saveImage: saverRef.current,
+      openExternal,
+    }
+  }, [openExternal])
+
+  const applySession = useCallback(() => {
+    const view = viewRef.current
+    if (view) reapplyEditorSession(view, readSession())
+  }, [readSession])
 
   const toggleSource = useCallback(() => {
     const view = viewRef.current
     if (!view) return
-    const next = !sourceModeRef.current
-    sourceModeRef.current = next
-    setSourceMode(next)
-    setLivePreview(view, { openExternal }, !next)
-  }, [openExternal])
+    sourceModeRef.current = !sourceModeRef.current
+    setSourceMode(sourceModeRef.current)
+    reapplyEditorSession(view, readSession())
+  }, [readSession])
 
   /** Toggle real fullscreen: the Tauri window natively, the browser via the Fullscreen API. */
   const toggleFullscreen = useCallback(async () => {
@@ -154,21 +174,26 @@ export default function App() {
   useEffect(() => {
     if (!hostRef.current || viewRef.current) return
     let disposed = false
+    const extensions = createExtensions({
+      onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline(); scheduleAutosave() },
+      onToggleSource: () => toggleSource(),
+      openExternal,
+    })
+    extensionsRef.current = extensions
     const view = new EditorView({
-      state: EditorState.create({
-        doc: welcome,
-        extensions: createExtensions({
-          onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline(); scheduleAutosave() },
-          onToggleSource: () => toggleSource(),
-          openExternal,
-        }),
-      }),
+      state: EditorState.create({ doc: startupDoc, extensions }),
       parent: hostRef.current,
     })
     viewRef.current = view
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__yfmdView = view
-    applyEditorTheme()
+    reapplyEditorSession(view, readSession())
     scheduleOutline()
+
+    const imageError = (message: string) => notify(t('toast.imageSaveFailed', { error: message }))
+    const bindSaver = (fs: FileService, path: string | null) => {
+      saverRef.current = makeImageSaver(fs, path, imageError)
+      reapplyEditorSession(view, readSession())
+    }
 
     createFileService().then(fs => {
       if (disposed) return
@@ -176,62 +201,31 @@ export default function App() {
       const controller = new DocumentController(fs, {
         getText: () => view.state.doc.toString(),
         setText: text => {
-          view.setState(EditorState.create({
-            doc: text,
-            extensions: createExtensions({
-              onDocChanged: () => { controllerRef.current?.markDirty(); scheduleOutline(); scheduleAutosave() },
-              onToggleSource: () => toggleSource(),
-              openExternal,
-            }),
-          }))
+          const ext = extensionsRef.current
+          if (!ext) return
+          saverRef.current = makeImageSaver(fs, controllerRef.current?.meta.path ?? null, imageError)
+          replaceEditorDocument(view, text, ext, readSession())
           scheduleOutline()
-          sourceModeRef.current = false
-          setSourceMode(false)
-          applyEditorTheme()
-          const modes = modesRef.current
-          const currentSettings = settingsRef.current
-          view.dispatch({ effects: [
-            readOnlyCompartment.reconfigure(modes.readOnly ? readOnlyExtensions() : []),
-            writingModeCompartment.reconfigure(writingModeExtensions(modes.focusMode, modes.typewriterMode)),
-            codeLineNumbersCompartment.reconfigure(currentSettings.codeLineNumbers ? codeLineNumbersField : []),
-            syntaxCompartment.reconfigure(syntaxOptions.of(syntaxOptionsFrom(currentSettings))),
-          ] })
-          const path = controllerRef.current?.meta.path ?? null
-          view.dispatch({
-            effects: [
-              resolverCompartment.reconfigure(
-                imageResolver.of(src => fs.resolveResource(path, src))),
-              rebuildWidgets.of(null),
-            ],
-          })
         },
         confirmDiscard: () =>
           new Promise<ConfirmResult>(resolve => {
             confirmResolve.current = resolve
             setConfirmOpen(true)
           }),
+        confirmReload: () =>
+          new Promise<boolean>(resolve => {
+            diskResolve.current = resolve
+            const path = controllerRef.current?.meta.path ?? ''
+            setDiskPrompt(path.slice(path.lastIndexOf('/') + 1) || 'untitled')
+          }),
         notify,
         onMetaChange: m => {
           setMeta({ ...m })
           setRecent(loadRecent())
-          const p = m.path
-          const fs = fsRef.current
-          if (fs) {
-            const saver = makeImageSaver(fs, p)
-            saverRef.current = saver
-            view.dispatch({
-              effects: [
-                resolverCompartment.reconfigure(imageResolver.of(src => fs.resolveResource(p, src))),
-                imageSaverCompartment.reconfigure(imageSaver.of(saver)),
-                rebuildWidgets.of(null),
-              ],
-            })
-          }
+          bindSaver(fs, m.path)
         },
       })
-      const saver = makeImageSaver(fs, null)
-      saverRef.current = saver
-      view.dispatch({ effects: [imageSaverCompartment.reconfigure(imageSaver.of(saver))] })
+      bindSaver(fs, null)
       controllerRef.current = controller
       const pending = pendingOpenRef.current
       pendingOpenRef.current = null
@@ -283,37 +277,33 @@ export default function App() {
     if (code) root.style.setProperty('--code-font', code)
     else root.style.removeProperty('--code-font')
     saveSettings(settings)
-    applyEditorTheme()
-  }, [settings, applyEditorTheme])
+  }, [settings])
 
-  // focus / typewriter mode are editor-only toggles, not persisted settings
+  // One reconfigure covers settings and the view toggles, including after a document swap.
   useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: writingModeCompartment.reconfigure(writingModeExtensions(focusMode, typewriterMode)),
-    })
-  }, [focusMode, typewriterMode])
+    applySession()
+  }, [applySession, settings, focusMode, typewriterMode, readOnly, sourceMode])
 
   useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: codeLineNumbersCompartment.reconfigure(settings.codeLineNumbers ? codeLineNumbersField : []),
+    saveViewSession({
+      sidebar: sidebarVisible,
+      outline: outlineVisible,
+      focus: focusMode,
+      typewriter: typewriterMode,
+      source: sourceMode,
+      readOnly,
     })
-  }, [settings.codeLineNumbers])
+  }, [sidebarVisible, outlineVisible, focusMode, typewriterMode, sourceMode, readOnly])
 
   useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: [
-        syntaxCompartment.reconfigure(syntaxOptions.of(syntaxOptionsFrom(settings))),
-        rebuildWidgets.of(null),
-      ],
-    })
-  }, [settings.syntaxReferences, settings.syntaxHighlight, settings.syntaxScripts])
-
-  // read-only mode is an editor-only toggle, not a persisted setting
-  useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: readOnlyCompartment.reconfigure(readOnly ? readOnlyExtensions() : []),
-    })
-  }, [readOnly])
+    const tick = () => { void controllerRef.current?.checkDisk() }
+    const id = window.setInterval(tick, 2000)
+    window.addEventListener('focus', tick)
+    return () => {
+      window.clearInterval(id)
+      window.removeEventListener('focus', tick)
+    }
+  }, [])
 
   // keep the Fullscreen Mode toggle in sync when the browser leaves fullscreen (Esc, native F11)
   useEffect(() => {
@@ -538,7 +528,19 @@ export default function App() {
       case 'shortcuts': setShortcutsOpen(true); break
       case 'markdown-guide': void c?.newFile(welcome); break
       case 'report-issue': openExternal('https://github.com/automaticdai/yfmd/issues'); break
-      case 'check-updates': openExternal('https://github.com/automaticdai/yfmd/releases'); break
+      case 'check-updates':
+        void fetchLatestRelease().then(rel => {
+          if (rel.updateAvailable) {
+            notify(t('toast.updateAvailable', { version: rel.latest }))
+            openExternal('https://github.com/automaticdai/yfmd/releases')
+          } else {
+            notify(t('toast.upToDate', { version: pkg.version }))
+          }
+        }).catch(err => {
+          notify(t('toast.updateFailed', { error: err instanceof Error ? err.message : String(err) }))
+          openExternal('https://github.com/automaticdai/yfmd/releases')
+        })
+        break
       case 'focus-mode': setFocusMode(v => !v); break
       case 'typewriter-mode': setTypewriterMode(v => !v); break
       case 'always-on-top': {
@@ -601,6 +603,7 @@ export default function App() {
             selectedPath={selectedPath}
             onSelect={setSelectedPath}
             onOpenFile={path => void controllerRef.current?.openPath(path)}
+            onLoadDir={path => { void controllerRef.current?.loadChildren(path) }}
             onNewFile={path => void controllerRef.current?.createFile(path)}
             onNewFolder={path => void controllerRef.current?.createFolder(path)}
             onRenameRequest={setRenamePath}
@@ -645,6 +648,17 @@ export default function App() {
         <ConfirmDialog
           fileName={fileName}
           onChoice={choice => { setConfirmOpen(false); confirmResolve.current?.(choice) }}
+        />
+      )}
+      {diskPrompt !== null && (
+        <DiskChangeDialog
+          fileName={diskPrompt}
+          onChoice={reload => {
+            setDiskPrompt(null)
+            const resolve = diskResolve.current
+            diskResolve.current = null
+            resolve?.(reload)
+          }}
         />
       )}
       {settingsOpen && (

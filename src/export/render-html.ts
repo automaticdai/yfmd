@@ -13,6 +13,7 @@ import { ALERT_ICONS, ALERT_LABELS, type AlertKind } from '../editor/live-previe
 import { DEFAULT_SYNTAX_OPTIONS, type SyntaxOptions } from '../editor/live-preview/facets'
 import { EMOJI } from '../editor/markdown-extensions'
 import { slugify } from '../outline/outline'
+import { sanitizeThemeCss } from './theme-css'
 
 /** Which optional syntaxes this render pass should honour, carried on the markdown-it env. */
 function syntax(env: unknown): SyntaxOptions {
@@ -459,7 +460,7 @@ export async function renderExportHtml(
 ): Promise<string> {
   const body = await renderMermaidBlocks(renderBodyHtml(markdown, syntaxOpts))
   const content = customCss ? `<div id="write">\n${body}\n</div>` : body
-  const customStyle = customCss ? `<style>${customCss}</style>\n` : ''
+  const customStyle = customCss ? `<style>${sanitizeThemeCss(customCss)}</style>\n` : ''
   return `<!doctype html>
 <html lang="en">
 <head>

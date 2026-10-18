@@ -46,6 +46,7 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     history(),
     drawSelection(),
     EditorView.lineWrapping,
+    EditorView.contentAttributes.of({ spellcheck: 'true' }),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     syntaxHighlighting(mdHighlightStyle),
     search({ top: true }),

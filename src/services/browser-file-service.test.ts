@@ -25,11 +25,29 @@ describe('BrowserFileService file operations', () => {
     expect(fs.files.get('/a/x.md')).toBe('x')
   })
 
-  it('lists a folder tree with dirs first', async () => {
+  it('lists one level and leaves subdirectories unloaded', async () => {
     const fs = makeFs()
     const tree = await fs.listFolder('/a')
     expect(tree.map(e => e.name)).toEqual(['b', 'x.md'])
-    expect(tree[0].children?.map(c => c.name)).toEqual(['y.md'])
-    expect(tree[0].children?.[0].path).toBe('/a/b/y.md')
+    expect(tree[0].isDir).toBe(true)
+    expect(tree[0].children).toBeUndefined()
+    const nested = await fs.listFolder('/a/b')
+    expect(nested.map(e => e.name)).toEqual(['y.md'])
+    expect(nested[0].path).toBe('/a/b/y.md')
+  })
+
+  it('lists an empty directory created with mkdir', async () => {
+    const fs = makeFs()
+    await fs.mkdir('/a/empty')
+    const tree = await fs.listFolder('/a')
+    expect(tree.map(e => e.name)).toEqual(['b', 'empty', 'x.md'])
+  })
+
+  it('bumps mtime on write and reports null for a missing file', async () => {
+    const fs = makeFs()
+    const before = await fs.fileMtime('/a/x.md')
+    await fs.writeFile('/a/x.md', 'changed')
+    expect(await fs.fileMtime('/a/x.md')).toBeGreaterThan(before ?? 0)
+    expect(await fs.fileMtime('/missing.md')).toBeNull()
   })
 })

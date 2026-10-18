@@ -12,6 +12,7 @@ interface Props {
   selectedPath: string | null
   onSelect(path: string): void
   onOpenFile(path: string): void
+  onLoadDir(path: string): void
   onNewFile(path: string): void
   onNewFolder(path: string): void
   onRenameRequest(path: string): void
@@ -19,7 +20,7 @@ interface Props {
 }
 
 /** The left panel — folder and file management only. */
-export function Sidebar({ tree, folderPath, width, onWidthChange, selectedPath, onSelect, onOpenFile, onNewFile, onNewFolder, onRenameRequest, onDelete }: Props) {
+export function Sidebar({ tree, folderPath, width, onWidthChange, selectedPath, onSelect, onOpenFile, onLoadDir, onNewFile, onNewFolder, onRenameRequest, onDelete }: Props) {
   const { ref, startResize } = usePanelResize('right', onWidthChange)
 
   return (
@@ -29,6 +30,7 @@ export function Sidebar({ tree, folderPath, width, onWidthChange, selectedPath, 
         {folderPath && <div className="sidebar-folder" title={folderPath}>{folderPath}</div>}
         <FileTreePane tree={tree ?? []} folderPath={folderPath}
           selectedPath={selectedPath} onSelect={onSelect} onOpenFile={onOpenFile}
+          onLoadDir={onLoadDir}
           onNewFile={onNewFile} onNewFolder={onNewFolder}
           onRenameRequest={onRenameRequest} onDelete={onDelete} />
       </div>
