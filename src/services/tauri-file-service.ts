@@ -30,6 +30,7 @@ export class TauriFileService implements FileService {
   async openFileDialog(): Promise<OpenedFile | null> {
     const path = await open({ multiple: false, directory: false, filters: MD_FILTERS })
     if (typeof path !== 'string') return null
+    await this.grantAccess(path)
     return { path: normalizePath(path), content: await readTextFile(path) }
   }
 

@@ -127,11 +127,21 @@ export function buildInlineStructure(state: EditorState): InlineStructure {
       switch (name) {
         case 'ListMark':
           if (/^[-+*]$/.test(state.sliceDoc(node.from, node.to))) {
-            revealableHides.push({
-              deco: Decoration.replace({ widget: new BulletWidget() }).range(node.from, node.to),
-              guardFrom: node.from,
-              guardTo: node.to,
-            })
+            const next = node.node.nextSibling
+            if (next?.name === 'Task') {
+              const marker = next.getChild('TaskMarker')
+              revealableHides.push({
+                deco: hideWithSpace(node.from, node.to),
+                guardFrom: node.from,
+                guardTo: marker ? marker.to : node.to,
+              })
+            } else {
+              revealableHides.push({
+                deco: Decoration.replace({ widget: new BulletWidget() }).range(node.from, node.to),
+                guardFrom: node.from,
+                guardTo: node.to,
+              })
+            }
           }
           return
         case 'HeaderMark': {
@@ -208,11 +218,14 @@ export function buildInlineStructure(state: EditorState): InlineStructure {
           return
         case 'Link': {
           const text = state.sliceDoc(node.from, node.to)
-          if (/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i.test(text)) {
+          if (/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i.test(text) || /^\[\^[\w-]+\]$/.test(text)) {
             return false
           }
           for (let child = node.node.firstChild; child; child = child.nextSibling) {
-            if (child.name === 'LinkMark' || child.name === 'URL' || child.name === 'LinkTitle') {
+            if (
+              (child.name === 'LinkMark' || child.name === 'URL' || child.name === 'LinkTitle') &&
+              !state.sliceDoc(child.from, child.to).includes('\n')
+            ) {
               revealableHides.push({ deco: hide.range(child.from, child.to), guardFrom: node.from, guardTo: node.to })
             }
           }

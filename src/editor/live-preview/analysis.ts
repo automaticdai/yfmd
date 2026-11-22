@@ -32,10 +32,12 @@ export const docAnalysisField = StateField.define<DocAnalysis>({
       const mathRanges = findMathRanges(tr.state)
       return { mathRanges, extensions: updateExtensions(analysis.extensions, tr, mathRanges) }
     }
-    // Parser caught up on a later part of the document: re-scan so code fences
-    // and tables that only now exist in the tree exclude extension syntax.
+    // Parser caught up on a later part of the document: re-scan math and extensions
+    // so code fences and tables that only now exist in the tree exclude them.
     if (parseAdvanced(tr.startState, tr.state)) {
-      return { mathRanges: analysis.mathRanges, extensions: findExtensions(tr.state) }
+      const mathRanges = findMathRanges(tr.state)
+      const extensions = scanExtensionsIn(tr.state.doc.toString(), 0, findScanExclusions(tr.state, mathRanges))
+      return { mathRanges, extensions }
     }
     return analysis
   },

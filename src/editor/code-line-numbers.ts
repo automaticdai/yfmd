@@ -2,6 +2,7 @@ import { syntaxTree } from '@codemirror/language'
 import type { EditorState } from '@codemirror/state'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
+import { parseAdvanced } from './live-preview/analysis'
 
 class LineNumberWidget extends WidgetType {
   constructor(readonly n: number) { super() }
@@ -39,7 +40,7 @@ function buildCodeLineNumbers(state: EditorState): DecorationSet {
 export const codeLineNumbersField = StateField.define<DecorationSet>({
   create: buildCodeLineNumbers,
   update(deco, tr) {
-    if (tr.docChanged) return buildCodeLineNumbers(tr.state)
+    if (tr.docChanged || parseAdvanced(tr.startState, tr.state)) return buildCodeLineNumbers(tr.state)
     return deco.map(tr.changes)
   },
   provide: f => EditorView.decorations.from(f),

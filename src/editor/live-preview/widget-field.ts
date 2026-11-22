@@ -30,16 +30,18 @@ class ImageWidget extends WidgetType {
   eq(other: ImageWidget) { return other.resolved === this.resolved && other.alt === this.alt }
   toDOM(view: EditorView) {
     const img = document.createElement('img')
-    img.src = this.resolved
     img.alt = this.alt
     img.className = 'cm-image-widget'
+    img.onload = () => view.requestMeasure()
     img.onerror = () => {
       const broken = document.createElement('span')
       broken.className = 'cm-image-broken'
       broken.textContent = `image not found: ${this.alt || this.resolved}`
       placeCursor(view, broken)
       img.replaceWith(broken)
+      view.requestMeasure()
     }
+    img.src = this.resolved
     placeCursor(view, img)
     return img
   }

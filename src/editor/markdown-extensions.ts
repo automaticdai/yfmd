@@ -2,7 +2,7 @@ import type { EditorState, Range } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
 import { selectionTouches } from './live-preview/cursor-context'
-import { getExtensions } from './live-preview/analysis'
+import { getExtensions, parseAdvanced } from './live-preview/analysis'
 import { syntaxOptions } from './live-preview/facets'
 import { EMOJI, type ExtMatch } from './live-preview/extensions'
 
@@ -79,8 +79,12 @@ export const markdownExtensionsField = StateField.define<FieldValue>({
     return { structure, decorations: applyExtensionSelection(structure, state) }
   },
   update(value, tr) {
-    // A Syntax support toggle changes which kinds decorate, without touching the doc.
-    if (tr.docChanged || tr.startState.facet(syntaxOptions) !== tr.state.facet(syntaxOptions)) {
+    // A Syntax support toggle or async parser catch-up changes which ranges decorate.
+    if (
+      tr.docChanged ||
+      parseAdvanced(tr.startState, tr.state) ||
+      tr.startState.facet(syntaxOptions) !== tr.state.facet(syntaxOptions)
+    ) {
       const structure = buildExtensionStructure(getExtensions(tr.state), tr.state)
       return { structure, decorations: applyExtensionSelection(structure, tr.state) }
     }

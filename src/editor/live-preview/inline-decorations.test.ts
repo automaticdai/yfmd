@@ -95,6 +95,25 @@ describe('inline mark hiding', () => {
     const doc = '1. ordered\n\nplain - text + text\n\n    - code\n\nend'
     expect(hiddenRanges(buildInlineDecorations(mkState(doc, doc.length)).hides)).toEqual([])
   })
+  it('hides the list marker on task items instead of rendering a bullet before the checkbox', () => {
+    const doc = '- [x] done\n- [ ] todo\n\nend'
+    const { hides } = buildInlineDecorations(mkState(doc, doc.length))
+    const widgets: string[] = []
+    const hidden: string[] = []
+    const it = hides.iter()
+    while (it.value) {
+      if (it.value.spec.widget) widgets.push(doc.slice(it.from, it.to))
+      else hidden.push(doc.slice(it.from, it.to))
+      it.next()
+    }
+    expect(widgets).toEqual([])
+    expect(hidden).toEqual(['- ', '- '])
+  })
+  it('does not style footnote references as links', () => {
+    const doc = 'See claim[^1].\n\n[^1]: note'
+    const { hides } = buildInlineDecorations(mkState(doc, 0))
+    expect(hiddenRanges(hides)).toEqual([])
+  })
   it('hides ** markers when cursor is outside', () => {
     // doc: "x **bold** y" — bold node spans 2..10, marks 2..4 and 8..10
     const { hides } = buildInlineDecorations(mkState('x **bold** y', 0))

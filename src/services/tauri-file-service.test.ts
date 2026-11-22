@@ -38,3 +38,11 @@ it('uses an HTML filter for HTML exports', async () => {
   expect(await new TauriFileService().saveFileDialog('doc.html')).toBe('C:/Documents/doc.html')
   expect(save).toHaveBeenCalledWith(expect.objectContaining({ filters: [{ name: 'HTML', extensions: ['html'] }] }))
 })
+
+it('grants asset/fs directory access when opening a file via dialog', async () => {
+  vi.mocked(open).mockResolvedValue('C:\\notes\\doc.md')
+  vi.mocked(invoke).mockResolvedValue(undefined)
+  const result = await new TauriFileService().openFileDialog()
+  expect(result?.path).toBe('C:/notes/doc.md')
+  expect(invoke).toHaveBeenCalledWith('grant_access', { path: 'C:\\notes\\doc.md' })
+})
