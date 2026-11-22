@@ -48,7 +48,12 @@ export function reapplyEditorSession(view: EditorView, session: EditorSession): 
  */
 export function replaceEditorDocument(
   view: EditorView, text: string, extensions: Extension, session: EditorSession,
+  opts?: { preserveScroll?: boolean },
 ): void {
+  const prevScrollTop = opts?.preserveScroll ? view.scrollDOM.scrollTop : 0
   view.setState(EditorState.create({ doc: text, extensions }))
   reapplyEditorSession(view, session)
+  if (opts?.preserveScroll && prevScrollTop > 0) {
+    requestAnimationFrame(() => { view.scrollDOM.scrollTop = prevScrollTop })
+  }
 }

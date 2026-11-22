@@ -112,7 +112,16 @@ export function findMathRanges(state: EditorState): MathRange[] {
   return out.sort((a, b) => a.from - b.from)
 }
 
+const MAX_MATH_CACHE = 500
 const mathCache = new Map<string, string>()
+
+function cacheMath(key: string, html: string) {
+  if (mathCache.size >= MAX_MATH_CACHE) {
+    const oldest = mathCache.keys().next().value
+    if (oldest !== undefined) mathCache.delete(oldest)
+  }
+  mathCache.set(key, html)
+}
 
 export class MathWidget extends WidgetType {
   constructor(readonly tex: string, readonly display: boolean) { super() }
@@ -128,7 +137,7 @@ export class MathWidget extends WidgetType {
       let html = mathCache.get(key)
       if (html === undefined) {
         html = katex.renderToString(this.tex, { displayMode: this.display, throwOnError: false })
-        mathCache.set(key, html)
+        cacheMath(key, html)
       }
       el.innerHTML = html
     }

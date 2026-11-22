@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatParsedTable, formatTable, parseTable, splitRow } from './table'
+import { formatParsedTable, formatTable, parseTable, renderTableCell, splitRow } from './table'
 
 describe('splitRow', () => {
   it('strips outer pipes and trims cells', () => {
@@ -42,5 +42,21 @@ describe('formatTable', () => {
   it('formats with explicit column widths', () => {
     const parsed = parseTable('| a | b |\n| - | - |\n| c | d |')!
     expect(formatParsedTable(parsed, [5, 3])).toBe('| a     | b   |\n| ----- | --- |\n| c     | d   |')
+  })
+  it('clamps narrow explicit widths instead of throwing RangeError', () => {
+    const parsed = parseTable('| header | b |\n| :---: | -: |\n| longcell | d |')!
+    expect(formatParsedTable(parsed, [1, 1])).toBe(
+      '|  header  |   b |\n| :------: | --: |\n| longcell |   d |')
+  })
+})
+
+describe('renderTableCell', () => {
+  it('renders inline math, highlight, scripts, and emoji inside cells', () => {
+    const html = renderTableCell('$x^2$ ==hi== H~2~O a^b^ :rocket:')
+    expect(html).toContain('katex')
+    expect(html).toContain('<mark class="cm-mark">hi</mark>')
+    expect(html).toContain('<sub>2</sub>')
+    expect(html).toContain('<sup>b</sup>')
+    expect(html).toContain('🚀')
   })
 })

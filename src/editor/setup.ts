@@ -78,7 +78,9 @@ export function createExtensions(opts: EditorOptions): Extension[] {
     readOnlyCompartment.of([]),
     syntaxCompartment.of([]),
     EditorView.updateListener.of(u => {
-      if (u.docChanged) opts.onDocChanged()
+      if (u.docChanged && u.transactions.some(tr => tr.docChanged && !tr.isUserEvent('format.table.auto'))) {
+        opts.onDocChanged()
+      }
     }),
     EditorView.theme({
       '&': { height: '100%', fontSize: 'var(--editor-font-size, 16px)' },

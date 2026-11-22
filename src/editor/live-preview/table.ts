@@ -2,7 +2,10 @@ import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Extension } from '@codemirror/state'
 import { EditorView, WidgetType } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
+import katex from 'katex'
 import MarkdownIt from 'markdown-it'
+import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
+import { EMOJI } from './extensions'
 
 export type CellAlign = 'left' | 'center' | 'right' | null
 export interface ParsedTable { align: CellAlign[]; header: string[]; rows: string[][] }
@@ -43,11 +46,12 @@ export function parseTable(src: string): ParsedTable | null {
 export function formatParsedTable(parsed: ParsedTable, explicitWidths?: number[]): string {
   const { align, header, rows } = parsed
   const ncol = Math.max(header.length, align.length, ...rows.map(r => r.length), 1)
-  const widths = (explicitWidths ?? Array.from({ length: ncol }, (_, i) =>
-    Math.max(3, (header[i] ?? '').length, ...rows.map(r => (r[i] ?? '').length))))
-    .map(w => Math.max(1, Math.round(w)))
+  const minWidths = Array.from({ length: ncol }, (_, i) =>
+    Math.max(3, (header[i] ?? '').length, ...rows.map(r => (r[i] ?? '').length)))
+  const widths = minWidths.map((minW, i) =>
+    Math.max(minW, Math.round(explicitWidths?.[i] ?? minW)))
   const pad = (text: string, i: number) => {
-    const extra = widths[i] - text.length
+    const extra = Math.max(0, widths[i] - text.length)
     if (align[i] === 'right') return ' '.repeat(extra) + text
     if (align[i] === 'center') {
       const left = Math.floor(extra / 2)
@@ -62,10 +66,10 @@ export function formatParsedTable(parsed: ParsedTable, explicitWidths?: number[]
     widths
       .map((w, i) => {
         const a = align[i]
-        if (a === 'center') return ':' + '-'.repeat(w - 2) + ':'
-        if (a === 'right') return '-'.repeat(w - 1) + ':'
-        if (a === 'left') return ':' + '-'.repeat(w - 1)
-        return '-'.repeat(w)
+        if (a === 'center') return ':' + '-'.repeat(Math.max(1, w - 2)) + ':'
+        if (a === 'right') return '-'.repeat(Math.max(1, w - 1)) + ':'
+        if (a === 'left') return ':' + '-'.repeat(Math.max(1, w - 1))
+        return '-'.repeat(Math.max(3, w))
       })
       .join(' | ') +
     ' |'
@@ -78,7 +82,94 @@ export function formatTable(src: string): string {
   return formatParsedTable(parsed)
 }
 
-const inlineMd = new MarkdownIt({ html: false, linkify: false })
+function createTableInlineMd(): MarkdownIt {
+  const md = new MarkdownIt({ html: false, linkify: false })
+  md.inline.ruler.after('escape', 'math_inline', (state: StateInline, silent: boolean) => {
+    const { src, pos } = state
+    if (src[pos] !== '$' || src[pos + 1] === '$') return false
+    if (src[pos - 1] === '\\' || src[pos - 1] === '$') return false
+    let end = pos + 1
+    while ((end = src.indexOf('$', end)) !== -1) {
+      if (src[end - 1] !== '\\') break
+      end += 1
+    }
+    if (end === -1) return false
+    const tex = src.slice(pos + 1, end)
+    if (tex.length === 0 || /^\s|\s$/.test(tex) || tex.includes('\n')) return false
+    if (/\d/.test(src[end + 1] ?? '')) return false
+    if (!silent) {
+      const token = state.push('math_inline', 'math', 0)
+      token.content = tex
+    }
+    state.pos = end + 1
+    return true
+  })
+  md.inline.ruler.after('backticks', 'mark', (state: StateInline, silent: boolean) => {
+    if (!state.src.startsWith('==', state.pos)) return false
+    const end = state.src.indexOf('==', state.pos + 2)
+    if (end === -1) return false
+    if (!silent) {
+      state.push('mark_open', 'mark', 1)
+      const text = state.push('text', '', 0)
+      text.content = state.src.slice(state.pos + 2, end)
+      state.push('mark_close', 'mark', -1)
+    }
+    state.pos = end + 2
+    return true
+  })
+  md.inline.ruler.after('mark', 'sup', (state: StateInline, silent: boolean) => {
+    if (state.src[state.pos] !== '^' || state.src[state.pos + 1] === '^') return false
+    const end = state.src.indexOf('^', state.pos + 1)
+    if (end === -1) return false
+    if (!silent) {
+      state.push('sup_open', 'sup', 1)
+      const text = state.push('text', '', 0)
+      text.content = state.src.slice(state.pos + 1, end)
+      state.push('sup_close', 'sup', -1)
+    }
+    state.pos = end + 1
+    return true
+  })
+  md.inline.ruler.after('sup', 'sub', (state: StateInline, silent: boolean) => {
+    if (state.src[state.pos] !== '~' || state.src[state.pos + 1] === '~') return false
+    const end = state.src.indexOf('~', state.pos + 1)
+    if (end === -1) return false
+    if (!silent) {
+      state.push('sub_open', 'sub', 1)
+      const text = state.push('text', '', 0)
+      text.content = state.src.slice(state.pos + 1, end)
+      state.push('sub_close', 'sub', -1)
+    }
+    state.pos = end + 1
+    return true
+  })
+  md.inline.ruler.after('sub', 'emoji', (state: StateInline, silent: boolean) => {
+    if (state.src[state.pos] !== ':') return false
+    const m = /^:([a-zA-Z0-9_+-]+):/.exec(state.src.slice(state.pos))
+    if (!m || !EMOJI[m[1]]) return false
+    if (!silent) {
+      const text = state.push('text', '', 0)
+      text.content = EMOJI[m[1]]
+    }
+    state.pos += m[0].length
+    return true
+  })
+  md.renderer.rules.math_inline = (tokens, idx) =>
+    katex.renderToString(tokens[idx].content, { throwOnError: false })
+  md.renderer.rules.mark_open = () => '<mark class="cm-mark">'
+  md.renderer.rules.mark_close = () => '</mark>'
+  md.renderer.rules.sup_open = () => '<sup>'
+  md.renderer.rules.sup_close = () => '</sup>'
+  md.renderer.rules.sub_open = () => '<sub>'
+  md.renderer.rules.sub_close = () => '</sub>'
+  return md
+}
+
+const inlineMd = createTableInlineMd()
+
+export function renderTableCell(cell: string): string {
+  return inlineMd.renderInline(cell)
+}
 
 function currentWidths(parsed: ParsedTable): number[] {
   return parsed.header.map((h, i) => Math.max(3, h.length, ...parsed.rows.map(r => (r[i] ?? '').length)))
@@ -101,7 +192,7 @@ function startResize(e: MouseEvent, col: number, view: EditorView, tableEl: HTML
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup', onUp)
     const next = [...widths]
-    next[col] = Math.max(1, widths[col] + Math.round(ev.clientX - startX))
+    next[col] = Math.max(3, widths[col] + Math.round((ev.clientX - startX) / 8))
     view.dispatch({
       changes: { from: lineFrom.from, to: lineTo.to, insert: formatParsedTable(parsed, next) },
       userEvent: 'format.table',
@@ -202,6 +293,6 @@ export const tableAutoFormat: Extension = EditorView.updateListener.of(update =>
   update.view.dispatch({
     changes: { from: lineFrom.from, to: lineTo.to, insert: formatted },
     selection: { anchor },
-    userEvent: 'format.table',
+    userEvent: 'format.table.auto',
   })
 })

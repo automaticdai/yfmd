@@ -13,12 +13,16 @@ export interface DocMeta {
 
 export interface DocHost {
   getText(): string
-  setText(text: string): void
+  setText(text: string, opts?: { preserveScroll?: boolean }): void
   confirmDiscard(): Promise<ConfirmResult>
   /** True = drop local edits and load the copy on disk. */
   confirmReload(): Promise<boolean>
   notify(message: string): void
   onMetaChange(meta: DocMeta): void
+}
+
+function normalizeEol(text: string): string {
+  return text.replace(/\r\n?/g, '\n')
 }
 
 export class DocumentController {
@@ -255,6 +259,9 @@ export class DocumentController {
       const mtime = await this.fs.fileMtime(path)
       if (this.meta.path !== path) return 'unchanged'
       if (mtime === null) {
+        // Never had a valid mtime (e.g. stat unsupported/transiently unavailable on open):
+        // do not falsely mark an untouched document dirty.
+        if (this.diskMtime === null) return 'unchanged'
         if (this.diskGone) return 'missing'
         this.diskGone = true
         this.externalChange = true
@@ -274,7 +281,11 @@ export class DocumentController {
       if (!this.meta.dirty) {
         const content = await this.fs.readFile(path)
         if (this.meta.path !== path) return 'unchanged'
-        this.host.setText(content)
+        if (normalizeEol(content) === normalizeEol(this.host.getText())) {
+          this.diskMtime = await this.fs.fileMtime(path)
+          return 'unchanged'
+        }
+        this.host.setText(content, { preserveScroll: true })
         const revision = this.revision
         this.diskMtime = await this.fs.fileMtime(path)
         if (this.meta.path !== path) return 'unchanged'
@@ -293,7 +304,7 @@ export class DocumentController {
         if (reload) {
           const content = await this.fs.readFile(path)
           if (this.meta.path !== path) return 'conflict'
-          this.host.setText(content)
+          this.host.setText(content, { preserveScroll: true })
           const revision = this.revision
           this.diskMtime = await this.fs.fileMtime(path)
           this.externalChange = false

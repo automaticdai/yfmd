@@ -310,6 +310,27 @@ it('pauses autosave when the file disappears', async () => {
   expect(h.messages.some(m => /removed/i.test(m))).toBe(true)
 })
 
+it('does not reload when mtime changes but content (with CRLF) is unchanged', async () => {
+  const h = harness()
+  await h.fs.writeFile('/a.md', 'line1\nline2')
+  await h.controller.openPath('/a.md')
+  h.fs.files.set('/a.md', 'line1\r\nline2')
+  h.fs.mtimes.set('/a.md', (h.fs.mtimes.get('/a.md') ?? 0) + 10)
+  expect(await h.controller.checkDisk()).toBe('unchanged')
+  expect(h.controller.meta.dirty).toBe(false)
+  expect(h.messages).toEqual([])
+})
+
+it('does not mark an untouched file dirty if fileMtime was unavailable on open', async () => {
+  const h = harness()
+  await h.fs.writeFile('/a.md', 'hello')
+  h.fs.fileMtime = async () => null
+  await h.controller.openPath('/a.md')
+  expect(await h.controller.checkDisk()).toBe('unchanged')
+  expect(h.controller.meta.dirty).toBe(false)
+  expect(h.messages).toEqual([])
+})
+
 it('loads a folder one level at a time', async () => {
   const h = harness()
   await h.fs.writeFile('/notes/a.md', 'a')

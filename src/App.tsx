@@ -87,6 +87,7 @@ export default function App() {
   const [stats, setStats] = useState<DocStats>(() => countDocStats(startupDoc))
   const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const extensionsRef = useRef<Extension[] | null>(null)
   const diskResolve = useRef<((reload: boolean) => void) | null>(null)
 
@@ -111,7 +112,11 @@ export default function App() {
 
   const notify = useCallback((message: string) => {
     setToast(message)
-    setTimeout(() => setToast(null), 4000)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => {
+      toastTimer.current = null
+      setToast(null)
+    }, 4000)
   }, [])
 
   const openExternal = useCallback((url: string) => {
@@ -190,7 +195,10 @@ export default function App() {
     scheduleOutline()
 
     const imageError = (message: string) => notify(t('toast.imageSaveFailed', { error: message }))
+    let boundPath: string | null | undefined = undefined
     const bindSaver = (fs: FileService, path: string | null) => {
+      if (path === boundPath) return
+      boundPath = path
       saverRef.current = makeImageSaver(fs, path, imageError)
       reapplyEditorSession(view, readSession())
     }
@@ -200,11 +208,13 @@ export default function App() {
       fsRef.current = fs
       const controller = new DocumentController(fs, {
         getText: () => view.state.doc.toString(),
-        setText: text => {
+        setText: (text, opts) => {
           const ext = extensionsRef.current
           if (!ext) return
-          saverRef.current = makeImageSaver(fs, controllerRef.current?.meta.path ?? null, imageError)
-          replaceEditorDocument(view, text, ext, readSession())
+          const path = controllerRef.current?.meta.path ?? null
+          boundPath = path
+          saverRef.current = makeImageSaver(fs, path, imageError)
+          replaceEditorDocument(view, text, ext, readSession(), opts)
           scheduleOutline()
         },
         confirmDiscard: () =>

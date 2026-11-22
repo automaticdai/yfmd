@@ -3,7 +3,16 @@ import mermaid from 'mermaid'
 
 let initializedTheme: string | null = null
 let idCounter = 0
+const MAX_SVG_CACHE = 100
 const svgCache = new Map<string, string>()
+
+function cacheSvg(code: string, svg: string) {
+  if (svgCache.size >= MAX_SVG_CACHE) {
+    const oldest = svgCache.keys().next().value
+    if (oldest !== undefined) svgCache.delete(oldest)
+  }
+  svgCache.set(code, svg)
+}
 
 function ensureInit(theme: 'light' | 'dark') {
   const want = theme === 'dark' ? 'dark' : 'default'
@@ -31,11 +40,13 @@ export class MermaidWidget extends WidgetType {
       mermaid
         .render(`yfmd-mermaid-${idCounter++}`, this.code)
         .then(({ svg }) => {
-          svgCache.set(this.code, svg)
+          cacheSvg(this.code, svg)
+          if (!el.isConnected) return
           el.innerHTML = svg
           view.requestMeasure()
         })
         .catch((err: unknown) => {
+          if (!el.isConnected) return
           el.textContent = ''
           const box = document.createElement('div')
           box.className = 'cm-widget-error'

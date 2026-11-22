@@ -24,6 +24,7 @@ export function linkClick(openExternal: (url: string) => void): Extension {
       }
       if (!url) return false
       if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url
+      if (!/^(https?|mailto):/i.test(url)) return false
       event.preventDefault()
       openExternal(url)
       return true

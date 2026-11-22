@@ -135,17 +135,22 @@ export function FileTreePane({ tree, folderPath, selectedPath, onSelect, onOpenF
     })
   }
 
+  const clampMenuPos = (clientX: number, clientY: number) => ({
+    x: Math.max(4, Math.min(clientX, window.innerWidth - 180)),
+    y: Math.max(4, Math.min(clientY, window.innerHeight - 160)),
+  })
+
   const openNodeMenu = (e: MouseEvent, node: FileEntry) => {
     e.preventDefault()
     e.stopPropagation()
     if (node.isDir && node.children === undefined) void onLoadDir(node.path)
-    setMenu({ x: e.clientX, y: e.clientY, path: node.path })
+    setMenu({ ...clampMenuPos(e.clientX, e.clientY), path: node.path })
   }
 
   const openRootMenu = (e: MouseEvent) => {
     if (!folderPath) return
     e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY, path: null })
+    setMenu({ ...clampMenuPos(e.clientX, e.clientY), path: null })
   }
 
   const menuNode = menu?.path ? findEntry(tree, menu.path) : null
